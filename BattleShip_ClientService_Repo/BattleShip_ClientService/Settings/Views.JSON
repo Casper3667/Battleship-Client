@@ -1,0 +1,42 @@
+[
+  {
+    "Name": "Seperator",
+    "ID": 0,
+    "Height": 1
+  },
+  {
+    "Name": "Chat_View",
+    "ID": 1,
+    "Height": 10
+  },
+  {
+    "Name": "AttackScreen_View",
+    "ID": 2,
+    "Height": 12
+  },
+  {
+    "Name": "DefenceScreen_View",
+    "ID": 3,
+    "Height": 12
+  },
+  {
+    "Name": "FeedBack_View",
+    "ID": 4,
+    "Height": 1
+  },
+  {
+    "Name": "Shot_View",
+    "ID": 5,
+    "Height": 2
+  },
+  {
+    "Name": "PrivateChatInput_View",
+    "ID": 6,
+    "Height": 2
+  },
+  {
+    "Name": "GroupChatInput_View",
+    "ID": 7,
+    "Height": 2
+  }
+]
