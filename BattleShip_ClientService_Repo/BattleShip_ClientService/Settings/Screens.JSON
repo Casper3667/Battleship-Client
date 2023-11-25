@@ -18,10 +18,20 @@
     "ID": 2,
     "Height": null,
     "Width": null,
-    "ViewLayout": "1,0,2,3,4,5"
-      
-
+    "ViewLayout": "1,0,2,3,4,9"
+  },
+  {
+    "Name": "Chat_Screen",
+    "ID": 3,
+    "Height": null,
+    "Width": null,
+    "ViewLayout": "7,6"
+  },
+  {
+    "Name": "Shooting_Screen",
+    "ID": 4,
+    "Height": null,
+    "Width": null,
+    "ViewLayout": "7,2,5"
   }
-
-
 ]

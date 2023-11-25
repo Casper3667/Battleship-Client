@@ -44,16 +44,16 @@ namespace BattleShip_ClientService.Settings
         {
             if (ViewLayout == null)
                 return null;
-            Console.WriteLine("Decoding this: " + ViewLayout);
+            //Console.WriteLine("Decoding this: " + ViewLayout);
             var ids=ViewLayout.Split(',');
             var list=new List<ScreenViewData>();
             int ViewHeight = 0;
             foreach (var id in ids)
             {
-                Console.WriteLine(id);
+                //Console.WriteLine(id);
                 if(int.TryParse(id,out int ID)){
                     var view = Settings.Views[ID];
-                    var viewData=new ScreenViewData(view,ViewHeight,Width);
+                    var viewData=new ScreenViewData(this,view,ViewHeight,Width);
                     list.Add(viewData);
                     ViewHeight+=view.Height;
                 }
@@ -70,11 +70,13 @@ namespace BattleShip_ClientService.Settings
     public class ScreenViewData
     {
         public View View { get; private set; }
+        public Screen Screen { get; private set; }
         public int StartHeight { get; private set; }
         public int? ScreenWidth { get; private set; }
 
-        public ScreenViewData(View view,int startHeight,int? screenWidth) 
+        public ScreenViewData(Screen screen,View view,int startHeight,int? screenWidth) 
         {
+            Screen = screen;
             this.View = view;
             this.StartHeight = startHeight;
             this.ScreenWidth = screenWidth;

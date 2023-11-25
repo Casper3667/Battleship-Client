@@ -8,6 +8,9 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text;
@@ -19,10 +22,19 @@ namespace BattleShip_ClientService.Interfaces
 {
     public class GameServerInterface
     {
+        
+
         const string END_OF_MESSAGE = "#END#";
         bool useEndMessage;
         bool first = true;
         bool isCleared = false;
+
+        bool KeyHasBeenPressed = false;
+        bool IsInInputField = false;
+
+        ConsoleColor DefaultBackgroundsColor = ConsoleColor.Black;
+        ConsoleColor DefaultForegroundColor = ConsoleColor.Gray;
+
 
         TcpClient client;
         NetworkStream stream;
@@ -35,12 +47,20 @@ namespace BattleShip_ClientService.Interfaces
         bool running = true;
 
         Screen currentScreen;
+       
+        public Screen CurrentScreen { get { return currentScreen; } set{ currentScreen = value; } }
+
         int oldWidth;
 
         Stack<Screen> previousScreens = new Stack<Screen>();
 
+
+        bool LogFeedback = false;
+
+        
         public GameServerInterface() 
         {
+            
         }
         private void TEST_Make_Random_Move()
         {
@@ -61,9 +81,13 @@ namespace BattleShip_ClientService.Interfaces
         {
             if(ConnectToGameServer(adress,token))
             {
+                running = true;
                 Console.Clear();
+                Console.BackgroundColor=DefaultBackgroundsColor;
+                Console.ForegroundColor=DefaultForegroundColor;
                 currentScreen= Settings.Settings.Screens[2];
-                
+                StartReadInputLoop();
+
                 while (running)
                 {
 
@@ -71,7 +95,7 @@ namespace BattleShip_ClientService.Interfaces
                     DrawCurrentScreen();
                     
                     
-
+                    
                 }
                 
                 
@@ -110,6 +134,7 @@ namespace BattleShip_ClientService.Interfaces
 
 
         #region TCP Stuff
+
         private bool ConnectToServer(string address,string token)
         {
             try
@@ -212,7 +237,6 @@ namespace BattleShip_ClientService.Interfaces
             }
         }
         #endregion
-
         #region Message Handeling
         List<string> ServerMessages = new List<string>();
         Queue<RawGameStateMessage> RawGameStateMessages = new Queue<RawGameStateMessage>();
@@ -396,11 +420,212 @@ namespace BattleShip_ClientService.Interfaces
 
 
         #endregion
+
+        #region Input Loop
+        Thread readInputThread;
+     
+
+
+        public void StartReadInputLoop()
+        {
+            readInputThread=new Thread(ReadInputLoop) { IsBackground = true };
+            readInputThread.Start();
+        }
+
+
+        public void ReadInputLoop()
+        {
+
+            while (running)
+            {
+                ConsoleKey input = Console.ReadKey(true).Key;
+                //if(KeyHasBeenPressed==false && IsInInputField==false)
+                //    KeyHasBeenPressed = true;
+                HandleInput(input);
+
+            }
+
+        }
+        public string HandleInput(ConsoleKey key)
+        {
+            //TEST_Make_Random_Move(); //THIS INDICATES THAT THIS POINT IS REACHED
+            string result = "";
+            List<KeyBind> temp = new();
+            TestPrint("Key: " + key.ToString());
+            KeyBinds.ForEach(kb =>
+            {
+                if (kb.ConsoleKey == key) 
+                    if((kb.AssignedScreen == null || (int)kb.AssignedScreen == currentScreen.ID))    
+                        temp.Add(kb);
+
+            });
+
+            TestPrint("Commands in Temp:");
+            temp.ForEach(x=>TestPrint("- "+x.Command.ToString()));
+
+
+            if(temp.Count ==1) {
+                result=ExecuteCommand(temp[0].Command);
+                
+            }
+            else if(temp.Count > 1){
+                throw (new Exception($"This Key [{key.ToString()}] Has multiple Keybinds in this screen: " + currentScreen.Name));
+            }
+            else
+                result = "No Commands Found";
+           TestPrint("Handle_Input result: " + result);
+            return result;
+        }
+
+        public void GetMethods()
+        {
+            var publicMethods = this.GetType().GetMethods();
+            var nonPublicMethods=this.GetType().GetMethods(BindingFlags.Default);
+
+            TestPrint($"Public Methods [{publicMethods.Length}]:" );
+            publicMethods.ToList().ForEach(x => { TestPrint("- " + x.Name); });
+            TestPrint($"Non Public Methods [{nonPublicMethods.Length}]:");
+            nonPublicMethods.ToList().ForEach(x => { TestPrint("- " + x.Name); });
+        }
+
+        public string ExecuteCommand(Command command)
+        {
+            //TEST_CHAT_MESSAGE_BASIC();
+            string result = "";
+            MethodInfo? CommandMethod=null;
+
+            string theoreticalMethodName = "Command_" + command.ToString();
+            
+            TestPrint("Looking for Method with name: " + theoreticalMethodName);
+
+            CommandMethod = this.GetType().GetMethod(theoreticalMethodName);
+
+            //this.GetType().GetMethods(BindingFlags.NonPublic).ToList().ForEach(method =>
+            //{
+            //    if (CommandMethod == null)
+            //    {
+            //        string name = method.Name;
+            //        Console.WriteLine("- MethodName: " + name);
+            //        if (name == theoreticalMethodName)
+            //            CommandMethod = method;
+            //    }
+
+            //});
+
+            if (CommandMethod != null)
+            {
+
+                string response=(string)CommandMethod.Invoke(this, null);
+                
+                
+                result = "METHOD FOUND"+" "+response;
+            }
+            else
+                result = "METHOD NOT FOUND";
+            // CommandMethod.CreateDelegate(Delegate)
+            return result;
+        }
+        #region CommmandMethods
+        public string Command_GoBack()
+        {
+
+            if (GoToPreviousScreen() == false)
+                running = false;
+            CurrentFeedback = "Command Go Back";
+            return "GoBack";
+        }
+        public string Command_OpenShootingScreen()
+        {
+            //TEST_Make_Random_Move();
+            OpenNewScreen(Settings.Settings.Screens[(int)ScreenID.Shooting_Screen]);
+            
+            
+            CurrentFeedback = "Command Open Shooting Screen";
+            return "OpenShootingScreen";
+        }
+        public string Command_SendShot()
+        {
+
+            CurrentFeedback = "Send Shot";
+            return "SendShot";
+        }
+        public string Command_OpenPrivateChatScreen()
+        {
+            currentChatType = ChatType.Private;
+            OpenNewScreen(Settings.Settings.Screens[(int)ScreenID.Chat_Screen]);
+            //TEST_CHAT_MESSAGE_BASIC();
+            CurrentFeedback = "Command Open Private Chat Screen";
+            return "OpenPrivateChatScreen";
+        }
+        public string Command_OpenGroupChatScreen()
+        {
+            currentChatType=ChatType.Group;
+            OpenNewScreen(Settings.Settings.Screens[(int)ScreenID.Chat_Screen]);
+            //TEST_CHAT_MESSAGE_BASIC();
+            CurrentFeedback = "Command Open Group Chat Screen";
+            return "OpenGroupChatScreen";
+        }
+        public string Command_SendChatMessage()
+        {
+            CurrentFeedback = "Send Chat Messsage";
+            return "SendChatMessage";
+        }
+        #endregion
+
+        public enum Command
+        {
+            GoBack,
+            OpenShootingScreen,
+            SendShot,
+            OpenPrivateChatScreen,
+            OpenGroupChatScreen,
+            SendChatMessage
+        }
+       /// <summary>
+       /// This Might have Been Better as A JSON FILE
+       /// </summary>
+        public List<KeyBind> KeyBinds = new()
+        {
+            new KeyBind(Command.GoBack,ConsoleKey.Escape,null,"Go Back To Previous Screen"),
+            new KeyBind(Command.OpenShootingScreen,ConsoleKey.S,ScreenID.Game_Screen,"Open Shooting Screen"),
+            new KeyBind(Command.SendShot,ConsoleKey.Enter,ScreenID.Shooting_Screen, "Send Shot"),
+            new KeyBind(Command.OpenPrivateChatScreen,ConsoleKey.P,ScreenID.Game_Screen, "Open Private Chat Screen"),
+            new KeyBind(Command.OpenGroupChatScreen,ConsoleKey.G,ScreenID.Game_Screen, "Open Group Chat Screen"),
+            new KeyBind(Command.SendChatMessage,ConsoleKey.Enter,ScreenID.Chat_Screen, "Sends Chat Message")
+
+
+        };
+        public class KeyBind
+        {
+            public Command Command { get; private set; }
+            public ConsoleKey ConsoleKey { get; private set; }
+            public ScreenID? AssignedScreen { get; private set; }
+            public string Description { get; private set; }
+            public KeyBind(Command command, ConsoleKey consoleKey, ScreenID? assignedScreen, string description)
+            {
+                Command = command;
+                ConsoleKey = consoleKey;
+                AssignedScreen = assignedScreen;
+                Description = description;
+            }
+        }
+
+
+        #endregion
+
         #region Chat Stuff
         private List<ChatMessage> OldChatLog=new List<ChatMessage>();
         public Queue<ChatMessage> ChatMessages { get; private set; }=new Queue<ChatMessage> ();
         public Queue<ChatMessage> NewChatMessages { get; private set; } = new Queue<ChatMessage>();
         private Mutex NewChatMessageMutex = new Mutex();
+
+        public ChatType currentChatType=ChatType.Private;
+        public enum ChatType
+        {
+            Private,
+            Group
+        }
+
         public void AddNewChatMessage(string message)
         {
             NewChatMessageMutex.WaitOne();
@@ -491,13 +716,36 @@ namespace BattleShip_ClientService.Interfaces
         //byte[,] AttackScreen = new byte[10, 10];
         //byte[,] DefenceScreen = new byte[10, 10];
 
-
+        public List<string> FeedbackLog = new List<string>();
+        private string currentFeedback;
+        public string CurrentFeedback { 
+            get 
+            {
+                if (currentFeedback == null || currentFeedback == "")
+                    currentFeedback = "No Feedback";
+                    
+                return currentFeedback; 
+            } 
+            set
+            {
+                if (LogFeedback)
+                {
+                    if ((currentFeedback == null || currentFeedback == "")==false)
+                        FeedbackLog.Add(currentFeedback);
+                }
+                currentFeedback = value;
+            } }
 
         #endregion
 
         #region Screen Stuff
+
+        Mutex ChangeScreenMutex = new Mutex();
+
         private void DrawCurrentScreen()
         {
+            ChangeScreenMutex.WaitOne();
+
             if (first)
             {
                 try
@@ -514,30 +762,82 @@ namespace BattleShip_ClientService.Interfaces
                 oldWidth = Console.WindowWidth;
             }
 
-            if (Console.WindowWidth != oldWidth)
+            if (Console.WindowWidth != oldWidth || KeyHasBeenPressed)
             {
-                Console.Clear();
-                isCleared = true;
-                oldWidth = Console.WindowWidth;
+                ClearScreen();
+                
+                if(KeyHasBeenPressed) { KeyHasBeenPressed=false; }
             }
-
 
             if (currentScreen.ID == 2)
             {
-                TEST_CHAT_MESSAGE_BASIC();
+                //TEST_CHAT_MESSAGE_BASIC();
 
-                TEST_Make_Random_Move();
-                PrintGameScreen(currentScreen);
+                //TEST_Make_Random_Move();
+
             }
+            if (currentScreen!=null)
+            {
+                PrintScreen(currentScreen);
+            }
+            
 
 
             if (first) first = false;
             if (isCleared) isCleared = false;
+            ChangeScreenMutex.ReleaseMutex();
+        }
+        private void ClearScreen()
+        {
+            Console.Clear();
+            isCleared = true;
+            oldWidth = Console.WindowWidth;
+        }
+        private void PrintScreen(Screen screen)
+        {
+            Console.CursorVisible = false;
+            foreach (var view in screen.Views)
+            {
+                switch (view.View.ID)
+                {
+                    case 0: //Seperator
+                        DrawSeperator(view);
+                        break;
+                    case 1: // Chat Widow
+                        DrawChatWindow(view);
+                        break;
+                    case 2: // AttackScreen
+                        Draw_AttackScreen(view);
+                        break;
+                    case 3: // DefenceScreen
+                        Draw_DefenceScreen(view);
+                        break;
+                    case 4: // Feedback Area 
+                        DrawFeedback(view);
+                        break;
+                    case 5: // Shot Area
+                        break;
+                    case 6: // Chat Input Area
+                        break;
+                    case 7: // Header (3 Lines)
+                        DrawHeader(view);
+                        break;
+                    case 8: // Lable (1 Line)
+                        DrawLable(view);
+                        break;
+                    case 9:
+                        DrawControls(view);
+                        break;
+                }
+            }
         }
         private void ChangeScreen(Screen newScreen)
         {
+            ChangeScreenMutex.WaitOne();
             currentScreen = newScreen;
             first = true;
+            ClearScreen();
+            ChangeScreenMutex.ReleaseMutex();
         }
         private void OpenNewScreen(Screen newScreen)
         {
@@ -545,58 +845,24 @@ namespace BattleShip_ClientService.Interfaces
 
            ChangeScreen(newScreen);
         }
-        private void GoToPreviousScreen()
+        private bool GoToPreviousScreen()
         {
             if(previousScreens.Count > 0)
             {
                 var screen=previousScreens.Pop();
                 ChangeScreen(screen);
+                return true;
             }
-
+            else
+                return false;
             
         }
         #endregion
-        #region Game Screen Stuff
+        #region View Drawing Stuff
         //static string gab = "      ";// 5
         static string gab = "";// None
         
-        private void PrintGameScreen(Screen screen)
-        {
-            
-           
-            
-
-
-            foreach(var view in screen.Views)
-            {
-                switch(view.View.ID)
-                {
-                    case 0: //Seperator
-                        DrawSeperator(view);
-                        break;
-                        case 1: // Chat Widow
-                        DrawChatWindow(view);
-                        break; 
-                        case 2: // AttackScreen
-                        Draw_AttackScreen(view);
-                        break;
-                        case 3: // DefenceScreen
-                        Draw_DefenceScreen(view);
-                        break;
-                        case 4: // Feedback Area 
-                        break;
-                        case 5: // Shot Area
-                        break;
-                }
-
-            }
-
-            
-
-
-
-            
-        }
+        
 
         #region -----------------0 Seperator-----------------
         public void DrawSeperator(ScreenViewData viewData)
@@ -620,7 +886,7 @@ namespace BattleShip_ClientService.Interfaces
         #region -----------------1 Chat Window-----------------
         public void DrawChatWindow(ScreenViewData viewData)
         {
-            Console.CursorVisible = false;
+
             if(CheckForNewMessages(viewData)||isCleared)
             {
                 //if(!isCleared) ClearLines(viewData.StartHeight, viewData.StartHeight + viewData.View.Height);
@@ -641,7 +907,7 @@ namespace BattleShip_ClientService.Interfaces
 
 
             }
-            Console.CursorVisible=true;
+
         }
         /// <summary>
         /// Used to Avoid Old Messages peeking behind new ones, and to Avoid Glichy behaviour connected to Clear Lines
@@ -669,7 +935,7 @@ namespace BattleShip_ClientService.Interfaces
         
         private void DrawScreen(ScreenType type, ScreenViewData viewData)
         {
-            Console.CursorVisible = false;
+
             string Title = "";
             byte[] screen = new byte[100];
             string[] symbols = new string[3];
@@ -743,7 +1009,7 @@ namespace BattleShip_ClientService.Interfaces
                 Console.BackgroundColor = oldBColor;
 
             }
-            Console.CursorVisible = true;
+
         }
         static void PlaceXGrid()
         {
@@ -790,12 +1056,152 @@ namespace BattleShip_ClientService.Interfaces
         }
         #endregion
         #region -----------------4 Feedback Screen-----------------
+        
+        public void DrawFeedback(ScreenViewData viewData)
+        {
+            
+            Console.BackgroundColor = DefaultForegroundColor; 
+            Console.ForegroundColor=DefaultBackgroundsColor;
+
+            //string text = CurrentFeedback;
+            int width = oldWidth;
+            //int left = (int)Math.Ceiling((width - text.Length) / (decimal)2);
+            Console.SetCursorPosition(0, viewData.StartHeight);
+            string text = MakeStringWithSides(width, CurrentFeedback, ' ');
+            Console.Write(text);
+
+            Console.BackgroundColor=DefaultBackgroundsColor; 
+            Console.ForegroundColor=DefaultForegroundColor;
+        }
 
         #endregion
-        #region -----------------5,6,7 Input Areas (Shot and Chat)-----------------
+        #region -----------------5,6 Input Areas (Shot and Chat)-----------------
+        // REMEMBER IsInInputField needs to be set to True if here and False After input section
+
 
         #endregion
+        #region -----------------7,8,9 Text Displays-----------------
+        public void DrawHeader(ScreenViewData viewData)
+        {
+            if (first || isCleared)
+            {
+                switch (viewData.Screen.ID)
+                {
+                    case ((int)ScreenID.Shooting_Screen):
+                        DrawHeaderBase(viewData, "Take Your Shot");
+                        break;
+                    case ((int)ScreenID.Chat_Screen):
+                        if (currentChatType == ChatType.Private)
+                            DrawHeaderBase(viewData, "Write Private Message");
+                        else if (currentChatType == ChatType.Group)
+                            DrawHeaderBase(viewData, "Write Group Message");
+                        break;
 
+                    default:
+                        DrawHeaderBase(viewData, viewData.Screen.Name);
+                        break;
+                }
+            }
+            
+
+
+        }
+        private void DrawHeaderBase(ScreenViewData viewData,string header)
+        {
+            int width = oldWidth;
+
+            int middley = viewData.StartHeight + ((int)Math.Ceiling((decimal)viewData.View.Height / (decimal)2));
+            Console.SetCursorPosition(0, viewData.StartHeight);
+
+            Console.SetCursorPosition(0, middley);
+            //int LeftSide = (int)Math.Ceiling((width - header.Length) / (decimal)2);
+            //int RightSide = width - (header.Length + LeftSide);
+            //string left=new string('-', LeftSide);
+            //string right = new string('-', RightSide);
+            //string text = left + header + right;
+            string text = MakeStringWithSides(width, header,'-');
+            Console.Write(text);
+            Console.SetCursorPosition(0, viewData.StartHeight+(viewData.View.Height-1));
+
+
+
+
+        }
+        public void DrawLable(ScreenViewData viewData)
+        {
+            if(first || isCleared)
+            {
+                switch (viewData.Screen.ID)
+                {
+                    case ((int)ScreenID.Game_Screen):
+                         DrawLableBase(viewData, "Text TO show how to open shoot and chat");
+                        break;
+                    case ((int)ScreenID.Chat_Screen):
+                        DrawLableBase(viewData, "NO TEXT SPECIFIED");
+                        break;
+                    default:
+                        DrawLableBase(viewData, "NO TEXT SPECIFIED");
+                            break;
+                }
+            }
+            
+
+
+
+        }
+        private void DrawLableBase(ScreenViewData viewData,string lable)
+        {
+            int width = oldWidth;
+            int left = (int)Math.Ceiling((width - lable.Length) / (decimal)2);
+            Console.SetCursorPosition(left, viewData.StartHeight);
+            Console.Write(lable);
+        }
+        private void DrawControls(ScreenViewData viewData)
+        {
+            if(first || isCleared)
+            {
+                int line = 0;
+
+                int width=oldWidth;
+                // DRAW Title:
+                Console.SetCursorPosition(0, viewData.StartHeight);
+                var text = MakeStringWithSides(width, "Controls",'-');
+                Console.Write(text);
+
+                // Get Controls for screen
+                var controls = new List<KeyBind>();
+                KeyBinds.ForEach(kb =>
+                {
+                    if (kb.AssignedScreen == null || (int)kb.AssignedScreen == viewData.Screen.ID)
+                        controls.Add(kb);                    
+                });
+                line++;
+                foreach(var control in controls)
+                {
+                    Console.SetCursorPosition(0, viewData.StartHeight + line);
+                    Console.Write($"{control.ConsoleKey.ToString()} : {control.Description}");
+
+                    line++;
+                    if (line >= viewData.View.Height)
+                    {
+                        break;
+                    }
+
+                }
+
+            }
+        }
+        private string MakeStringWithSides(int width,string text,char charOnSide)
+        {
+            int LeftSide = (int)Math.Ceiling((width - text.Length) / (decimal)2);
+            int RightSide = width - (text.Length + LeftSide);
+            string left = new string(charOnSide, LeftSide);
+            string right = new string(charOnSide, RightSide);
+            return  left + text + right;
+
+        }
+            
+        #endregion
 
 
         /// <summary>
@@ -830,7 +1236,17 @@ namespace BattleShip_ClientService.Interfaces
         #endregion
 
 
+        #region Testing
+        public bool IsTest { get; set; } = false;
+        public void TestPrint(string text)
+        {
+            if(IsTest)
+            {
+                Console.WriteLine(text);
+            }
+        }
 
+        #endregion
 
 
     }
@@ -870,6 +1286,14 @@ namespace BattleShip_ClientService.Interfaces
         }
     }
 
+    public enum ScreenID:int
+    {
+        Login_Screen=0,
+        WaitForOpponent_Screen=1,
+        Game_Screen=2,
+        Chat_Screen=3,
+        Shooting_Screen=4
+    }
 
     public interface IServerMessage
     {
