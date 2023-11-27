@@ -48,6 +48,10 @@
     "Name": "Controls_View",
     "ID": 9,
     "Height": 5
+  },
+  {
+    "Name": "ShotFeedBack_View",
+    "ID": 10,
+    "Height": 1
   }
-
 ]

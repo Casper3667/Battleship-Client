@@ -17,7 +17,7 @@ namespace BattleShip_ClientService_UnitTests
         {
             //Settings.LoadSettings();
             GSI =new GameServerInterface();
-            //GSI.IsTest = true;
+            GSI.IsTest = true;
         }
 
         [Test]
@@ -165,15 +165,28 @@ namespace BattleShip_ClientService_UnitTests
         //    Assert.AreEqual(expect, result);
         //}
         [Test]
-        public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound()
+        public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound_ReturnPressedButton()
         {
             Screen screen = new Screen() { ID = 2 };
             GSI.CurrentScreen = screen;
-            string expect = "No Commands Found";
+            
             ConsoleKey input = ConsoleKey.ExSel;
+            string expect = input.ToString();
             string result = GSI.HandleInput(input);
             Assert.AreEqual(expect, result);
         }
+        [Test]
+        public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound_A()
+        {
+            Screen screen = new Screen() { ID = 2 };
+            GSI.CurrentScreen = screen;
+
+            ConsoleKey input = ConsoleKey.ExSel;
+            string expect = "No Commands Found";
+            string result = GSI.HandleInput(input);
+            Assert.AreEqual(expect, result);
+        }
+        
         [Test]
         public void Test_GameServer_InputLoop_HandleInput_TestAllCommands()
         {
@@ -217,6 +230,45 @@ namespace BattleShip_ClientService_UnitTests
 
             
         }
+        #region Read Line Related
+        // TODO: TESTING; need way to Simulate Key Press;
+
+        //[Test]
+        //public void Test_GameServer_InputLoop_HandleInput2_NoCommandsFound_Comma()
+        //{
+        //    Screen screen = new Screen() { ID = 2 };
+        //    GSI.CurrentScreen = screen;
+
+
+
+        //    string expect = ",";
+        //    string result = GSI.HandleInputReadLine(input);
+        //    Assert.AreEqual(expect, result);
+        //}
+        #endregion
+        // TODO: TESTING When CheckShot Ready then uncomment this, and Change the other two as well
+        //[Test]
+        //public void Test_GameServer_CheckShot_true()
+        //{
+
+        //    string input = "1,1";
+        //    bool result = GSI.CheckShot(input).valid;
+        //    Assert.IsTrue(true);
+        //}
+        [Test]
+        public void Test_GameServer_CheckShot_false_NotRightFormat()
+        {
+            string input= "jahkshka";
+            bool result=GSI.CheckShot(input).valid; 
+            Assert.IsFalse(result);
+        }
+        public void Test_GameServer_CheckShot_false_OutOfBunds()
+        {
+            string input = "100,75";
+            bool result = GSI.CheckShot(input).valid;
+            Assert.IsFalse(result);
+        }
+
 
         [Test]
         public void Test_GetMethods()
