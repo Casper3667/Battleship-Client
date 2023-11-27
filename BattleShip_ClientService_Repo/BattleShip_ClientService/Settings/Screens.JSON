@@ -1,0 +1,27 @@
+[
+  {
+    "Name": "Login_Screen",
+    "ID": 0,
+    "Height": 12,
+    "Width": null,
+    "ViewLayout": null
+  },
+  {
+    "Name": "WaitForOpponent_Screen",
+    "ID": 1,
+    "Height": 12,
+    "Width": null,
+    "ViewLayout": null
+  },
+  {
+    "Name": "Game_Screen",
+    "ID": 2,
+    "Height": null,
+    "Width": null,
+    "ViewLayout": "1,0,2,3,4,5"
+      
+
+  }
+
+
+]
