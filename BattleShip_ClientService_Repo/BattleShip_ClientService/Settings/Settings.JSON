@@ -1,0 +1,38 @@
+{
+  "LayoutSettings": {
+    "GameScreenLayout": {
+      "0": 1,
+      "1": 0,
+      "2": 2,
+      "3": 3,
+      "4": 4
+    }
+    "Views": {
+      "Seperator": {
+        "ID": 0,
+        "Height": 1
+      }
+      "Chat_View": {
+        "ID": 1,
+        "Height": 10
+      }
+      "Game_View": {
+        "ID": 2,
+        "Height": 24
+      }
+      "FeedBack_View": {
+        "ID": 3,
+        "Height": 1
+      }
+      "Attack_View": {
+        "ID": 4,
+        "Height": 1
+      }
+    }
+    
+
+  }
+
+
+
+}
