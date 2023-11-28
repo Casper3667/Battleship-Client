@@ -30,13 +30,28 @@
     "Height": 2
   },
   {
-    "Name": "PrivateChatInput_View",
+    "Name": "ChatInput_View",
     "ID": 6,
     "Height": 2
   },
   {
-    "Name": "GroupChatInput_View",
+    "Name": "Header_View",
     "ID": 7,
-    "Height": 2
+    "Height": 3
+  },
+  {
+    "Name": "Lable_View",
+    "ID": 8,
+    "Height": 1
+  },
+  {
+    "Name": "Controls_View",
+    "ID": 9,
+    "Height": 5
+  },
+  {
+    "Name": "ShotFeedBack_View",
+    "ID": 10,
+    "Height": 1
   }
 ]

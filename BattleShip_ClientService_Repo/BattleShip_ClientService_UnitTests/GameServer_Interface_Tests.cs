@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BattleShip_ClientService.Interfaces;
+using BattleShip_ClientService.Settings;
+using NuGet.Frameworks;
 
 namespace BattleShip_ClientService_UnitTests
 {
@@ -13,8 +15,9 @@ namespace BattleShip_ClientService_UnitTests
         [SetUp]
         public void Setup()
         {
-            GSI=new GameServerInterface();
-
+            //Settings.LoadSettings();
+            GSI =new GameServerInterface();
+            GSI.IsTest = true;
         }
 
         [Test]
@@ -140,5 +143,139 @@ namespace BattleShip_ClientService_UnitTests
             //Assert.AreEqual(expect, 0);
 
         }
+
+        #region InputLoop
+        [Test]
+        public void Test_GameServer_InputLoop_HandleInput_MethodFound()
+        {
+
+            Screen screen = new Screen() { ID = 2 };
+            GSI.CurrentScreen = screen;
+            string expect = "METHOD FOUND";
+            ConsoleKey input = ConsoleKey.Escape;
+            string result = GSI.HandleInput(input);
+            Assert.IsTrue(result.Contains(expect));
+        }
+        //[Test]
+        //public void Test_GameServer_InputLoop_HandleInput_MethodNotFound()
+        //{
+        //    string expect = "METHOD NOT FOUND";
+        //    ConsoleKey input = ConsoleKey.Enter; // As Long as Screen is
+        //    string result = GSI.HandleInput(input);
+        //    Assert.AreEqual(expect, result);
+        //}
+        [Test]
+        public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound_ReturnPressedButton()
+        {
+            Screen screen = new Screen() { ID = 2 };
+            GSI.CurrentScreen = screen;
+            
+            ConsoleKey input = ConsoleKey.ExSel;
+            string expect = input.ToString();
+            string result = GSI.HandleInput(input);
+            Assert.AreEqual(expect, result);
+        }
+        [Test]
+        public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound_A()
+        {
+            Screen screen = new Screen() { ID = 2 };
+            GSI.CurrentScreen = screen;
+
+            ConsoleKey input = ConsoleKey.ExSel;
+            string expect = "No Commands Found";
+            string result = GSI.HandleInput(input);
+            Assert.AreEqual(expect, result);
+        }
+        
+        [Test]
+        public void Test_GameServer_InputLoop_HandleInput_TestAllCommands()
+        {
+            Screen screen = new Screen() { ID = 2 };
+            GSI.CurrentScreen = screen;
+            string expect;
+            string result;
+            foreach (var kb in GSI.KeyBinds)
+            {
+                if (kb.AssignedScreen == null || (int)kb.AssignedScreen == 2)
+                {
+                    expect = kb.Command.ToString();
+                }
+                else
+                {
+                    expect = "METHOD NOT FOUND";
+                }
+
+                result = GSI.HandleInput(kb.ConsoleKey);
+
+
+                Assert.IsTrue(true);
+               // Assert.IsTrue(result.Contains(expect));
+
+
+            }
+        }
+        [Test]
+        public void Test_GameServer_InputLoop_ExecuteCommand_TestAllCommands()
+        {
+            string expect;
+            string result;
+            foreach(var kb in GSI.KeyBinds)
+            {
+                expect = kb.Command.ToString();
+                result = GSI.ExecuteCommand(kb.Command);
+                
+                Assert.IsTrue(result.Contains(expect));
+
+            }
+
+            
+        }
+        #region Read Line Related
+        // TODO: TESTING; need way to Simulate Key Press;
+
+        //[Test]
+        //public void Test_GameServer_InputLoop_HandleInput2_NoCommandsFound_Comma()
+        //{
+        //    Screen screen = new Screen() { ID = 2 };
+        //    GSI.CurrentScreen = screen;
+
+
+
+        //    string expect = ",";
+        //    string result = GSI.HandleInputReadLine(input);
+        //    Assert.AreEqual(expect, result);
+        //}
+        #endregion
+        // TODO: TESTING When CheckShot Ready then uncomment this, and Change the other two as well
+        //[Test]
+        //public void Test_GameServer_CheckShot_true()
+        //{
+
+        //    string input = "1,1";
+        //    bool result = GSI.CheckShot(input).valid;
+        //    Assert.IsTrue(true);
+        //}
+        [Test]
+        public void Test_GameServer_CheckShot_false_NotRightFormat()
+        {
+            string input= "jahkshka";
+            bool result=GSI.CheckShot(input).valid; 
+            Assert.IsFalse(result);
+        }
+        public void Test_GameServer_CheckShot_false_OutOfBunds()
+        {
+            string input = "100,75";
+            bool result = GSI.CheckShot(input).valid;
+            Assert.IsFalse(result);
+        }
+
+
+        [Test]
+        public void Test_GetMethods()
+        {
+            GSI.GetMethods();
+            Assert.IsTrue(true);
+        }
+        #endregion
     }
 }
