@@ -23,7 +23,7 @@ namespace BattleShip_ClientService.Handlers
         }
 
 
-        // TODO: Write Code for Checking Shot is Valid
+        
         public const string useFormat = "Use Format: X,Y ";
         public const string formatExample = "Example: 6,8";
         public const string ErrorType_WrongFormat = "Wrong Format";
