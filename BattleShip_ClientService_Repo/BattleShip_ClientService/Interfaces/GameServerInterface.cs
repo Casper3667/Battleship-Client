@@ -1,4 +1,6 @@
-﻿using BattleShip_ClientService.Settings;
+﻿using BattleShip_ClientService.Handlers;
+using BattleShip_ClientService.Messages;
+using BattleShip_ClientService.Settings;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -25,16 +27,17 @@ namespace BattleShip_ClientService.Interfaces
 {
     public class GameServerInterface
     {
-
+        public string Name { get; private set; }
 
         const string END_OF_MESSAGE = "#END#";
-        bool useEndMessage;
+        bool useEndMessage=true;
         bool first = true;
         bool isCleared = false;
 
         bool KeyHasBeenPressed = false;
         bool IsInInputField = false;
 
+      
         ConsoleColor DefaultBackgroundsColor = ConsoleColor.Black;
         ConsoleColor DefaultForegroundColor = ConsoleColor.Gray;
 
@@ -58,6 +61,8 @@ namespace BattleShip_ClientService.Interfaces
 
         Stack<Screen> previousScreens = new Stack<Screen>();
 
+        ShotHandler shotHandler;
+        public string CurrentShotFeedback = "x,y";
 
         bool LogFeedback = false;
         //CancellationTokenSource readLinecancellationTokenSource;
@@ -69,10 +74,14 @@ namespace BattleShip_ClientService.Interfaces
         public GameServerInterface()
         {
             // TODO: If I Split Game Server Interface this beneath needs to be in the new Constructor
-           //readLinecancellationTokenSource = new CancellationTokenSource();
+            //readLinecancellationTokenSource = new CancellationTokenSource();
             //readKeySource = new CancellationTokenSource();
             //readLineToken=cancellationTokenSource.Token;
             //readLineTaskFactory = new TaskFactory<string>(readLineToken);
+
+            shotHandler = new ShotHandler(/*ref CurrentShotFeedback,*/ this);
+
+
         }
         private void TEST_Make_Random_Move()
         {
@@ -254,14 +263,31 @@ namespace BattleShip_ClientService.Interfaces
 
 
         // TODO: Make code for SendShotToGameServer
-        public void SendShotToGameServer(string shot)
+        public void SendShotToGameServer(Vector2? shot)
         {
-
+            Vector2 Shot;
+            if (shot != null)
+            {
+                Shot = (Vector2)shot;
+            }
+            else
+            {
+                Debug.Fail("For Some Reason SendShotToGameServer Was sent a Null value");
+                Shot = new Vector2(-1, -1); // if For SOME REASON it got sent a null, then it sends An  Invalid Shot1
+            }
+                
+            ShotMessage message = new ShotMessage((int)Shot.X, (int)Shot.Y);
+            string readyMessage=SerializeMessage(message);
+            SendMessage(readyMessage,stream);
         }
         // TODO: Make code for SendChatMessageToGameServer
         public void SendChatMessageToGameServer(string message, ChatType chatType)
         {
-            CurrentFeedback = "Send Message: " + message;
+            RawChatMessageFromClient chatMessage = new RawChatMessageFromClient(Name, message);
+            string readyMessage = SerializeMessage(message);
+            SendMessage(readyMessage, stream);
+
+            //CurrentFeedback = "Send Message: " + message;
         }
         #endregion
         #region Message Handeling
@@ -847,15 +873,10 @@ namespace BattleShip_ClientService.Interfaces
                 }
                 currentFeedback = value;
             } }
+        
 
-        public string CurrentShotFeedback="x,y";
 
-        // TODO: Write Code for Checking Shot is Valid
-        public (bool valid,string feedback) CheckShot(string shot)
-        {
-            CurrentFeedback="Shot at"+shot;
-            return (false,"Invalid Shot");
-        }
+
 
         #endregion
 
@@ -1340,10 +1361,10 @@ namespace BattleShip_ClientService.Interfaces
                     }
                     else 
                     {
-                        (bool valid, string feedback) = CheckShot(shot);
+                        (bool valid, string feedback,Vector2? shotVector) = shotHandler.CheckShot(shot);
                         if (valid)
                         {
-                            SendShotToGameServer(shot);
+                            SendShotToGameServer(shotVector);
                             GoToPreviousScreen(true); // Goes back to Game_Area after shot;
                         }
                         else

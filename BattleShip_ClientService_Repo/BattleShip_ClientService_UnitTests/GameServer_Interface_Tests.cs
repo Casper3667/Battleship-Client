@@ -255,19 +255,19 @@ namespace BattleShip_ClientService_UnitTests
         //    bool result = GSI.CheckShot(input).valid;
         //    Assert.IsTrue(true);
         //}
-        [Test]
-        public void Test_GameServer_CheckShot_false_NotRightFormat()
-        {
-            string input= "jahkshka";
-            bool result=GSI.CheckShot(input).valid; 
-            Assert.IsFalse(result);
-        }
-        public void Test_GameServer_CheckShot_false_OutOfBunds()
-        {
-            string input = "100,75";
-            bool result = GSI.CheckShot(input).valid;
-            Assert.IsFalse(result);
-        }
+        //[Test]
+        //public void Test_GameServer_CheckShot_false_NotRightFormat()
+        //{
+        //    string input= "jahkshka";
+        //    bool result=GSI.CheckShot(input).valid; 
+        //    Assert.IsFalse(result);
+        //}
+        //public void Test_GameServer_CheckShot_false_OutOfBunds()
+        //{
+        //    string input = "100,75";
+        //    bool result = GSI.CheckShot(input).valid;
+        //    Assert.IsFalse(result);
+        //}
 
 
         [Test]
