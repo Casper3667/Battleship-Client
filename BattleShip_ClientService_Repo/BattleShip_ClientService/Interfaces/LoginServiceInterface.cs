@@ -1,5 +1,8 @@
-﻿using System;
+﻿using BattleShip_ClientService.Handlers;
+using BattleShip_ClientService.Settings;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -9,6 +12,23 @@ namespace BattleShip_ClientService.Interfaces
 {
     public class LoginServiceInterface
     {
+        //const int LoginServicePort = 8081;
+        const string pathToController = "/api/Users/";
+        const string startOFPath = "http://";
+
+        HttpClient client;
+        public LoginServiceInterface() {
+            client = new HttpClient();
+            client.BaseAddress = new Uri(GetURL());
+            client.Timeout = TimeSpan.FromSeconds(10);
+        }
+        public string GetURL()
+        {
+            string ip = Settings.Settings.LoginServiceSettings.IP;
+            int port = Settings.Settings.LoginServiceSettings.PORT;
+            string result = startOFPath +ip + ":" + port + pathToController;
+            return result;
+        }
         string[] Logo=new string[]
         {
             "┌─┐┌─┐─┬──┬─┬  ┌──┌─┐┬ ┬─┬─┌─┐",
@@ -28,7 +48,7 @@ namespace BattleShip_ClientService.Interfaces
             }
 
         }
-        public /*async Task<UserDetails>*/ string LoginScreen()
+        public async /*Task<UserDetails>*/ Task<string> LoginScreen()
         {
 
             //int TitleXPos = (ClientSettings.ConsoleWidth - GameSettings.GameName.Length) / 2;
@@ -38,6 +58,7 @@ namespace BattleShip_ClientService.Interfaces
             var password = "";
             //UserDetails content = new UserDetails();
             bool ShowErrorText = false;
+            string JWT="";
             while (loggingIn)
             {
                 int TitleYPos = Console.WindowHeight / 4;
@@ -45,9 +66,9 @@ namespace BattleShip_ClientService.Interfaces
                 (var UPos, var PPos) = WriteGUI(new Vector2(TitleXPos,TitleYPos), ShowErrorText);
                 (username, password) = GetUsernameAndPassword(UPos, PPos);
 
-                //var response = await Login(username, password, false);
-                //bool LoginSuccessfull = response.IsSuccessStatusCode;
-                bool LoginSuccessfull =LoginMockup(username, password);
+                var response = await Login(username, password, false);
+                bool LoginSuccessfull = response.IsSuccessStatusCode;
+                //bool LoginSuccessfull =LoginMockup(username, password);
 
                 if (LoginSuccessfull)
                 {
@@ -55,17 +76,21 @@ namespace BattleShip_ClientService.Interfaces
                     
                     
                     ShowErrorText = false;
+                    JWT = await response.Content.ReadAsStringAsync();
+                    Debug.WriteLine("GOT JWT: " + JWT);
                 }
                 else
                 {
                     ShowErrorText = true;
+                    Debug.WriteLine("DIDNT GET JWT");
                 }
                 loggingIn = !LoginSuccessfull;
             }
 
             Console.WriteLine("Clear standin");
             Console.Clear();
-            return "JWT";
+            
+            return JWT;
            // return content;
         }
         private (Vector2 UsernamePos, Vector2 PasswordPos) WriteGUI(Vector2 LogoPos, bool ShowErrorText)
@@ -106,28 +131,30 @@ namespace BattleShip_ClientService.Interfaces
             return true;
         }
 
-        //public async Task<HttpResponseMessage?> Login(string username, string password, bool isDebug = true)
-        //{
-        //    var response = await client.GetAsync($"{username}/{password}");
+        public async Task<HttpResponseMessage?> Login(string username, string password, bool isDebug = true)
+        {
+            string hashPassword = PasswordHandler.HashPassword(password);
 
-        //    return response;
+            var response = await client.GetAsync($"{username}/{hashPassword}");
 
-        //    //if (response.IsSuccessStatusCode)1
-        //    //{
-        //    //    var content = await response.Content.ReadAsStringAsync();
+            return response;
 
-        //    //    if(isDebug)
-        //    //        Console.WriteLine("Response Sucsess full response: " + content);
-        //    //    return true;
-        //    //}
-        //    //else
-        //    //{
-        //    //    if(isDebug)
-        //    //        Console.WriteLine($"Response failed. Status code {response.StatusCode}");
-        //    //    return false;
-        //    //}
+            //if (response.IsSuccessStatusCode)1
+            //{
+            //    var content = await response.Content.ReadAsStringAsync();
 
-        //}
+            //    if(isDebug)
+            //        Console.WriteLine("Response Sucsess full response: " + content);
+            //    return true;
+            //}
+            //else
+            //{
+            //    if(isDebug)
+            //        Console.WriteLine($"Response failed. Status code {response.StatusCode}");
+            //    return false;
+            //}
+
+        }
         #endregion
 
     }

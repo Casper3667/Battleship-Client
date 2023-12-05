@@ -9,7 +9,11 @@ namespace BattleShip_ClientService.Handlers
 {
     public static class PasswordHandler
     {
-
+        /// <summary>
+        /// Method for Hashing a given Password
+        /// </summary>
+        /// <param name="password"></param>
+        /// <returns>Hash Value for Given Password</returns>
         public static string HashPassword(string password)
         {
             string sSourceData;

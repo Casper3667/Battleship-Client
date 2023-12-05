@@ -13,8 +13,11 @@ namespace BattleShip_ClientService_UnitTests
         [SetUp]
         public void Setup()
         {
+            TestContext.WriteLine("---------------Start Setup---------------");
             Testing.IsTesting = true;
             Settings.LoadSettings();
+            TestContext.WriteLine("---------------END   Setup---------------");
+
         }
 
         [Test]
@@ -22,6 +25,24 @@ namespace BattleShip_ClientService_UnitTests
         {
             Assert.Pass();
         }
+
+        [Test]
+        public void Test_Settings_GetPathToSettingsFile_Settings() 
+        {
+            TestContext.WriteLine(Settings.GetPathToSettingsFile("Settings.JSON"));
+            Assert.Pass();
+        }
+        #region - GetLoginServiceIP TESTS
+        [Test]
+        public void Test_Settings_GetLoginServiceIP()
+        {
+            TestContext.WriteLine("Getting IP for Login Service");
+            string ip = Settings.GetLoginServiceSettings();
+            TestContext.WriteLine($"IP: {ip}");
+            Assert.That(ip, Is.EqualTo(Settings.LoginServiceSettings.IP));
+        }
+        #endregion
+
 
         [Test]
         public void Test_Settings_SeeViews() 

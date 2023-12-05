@@ -8,8 +8,15 @@ Console.WriteLine("Hello, World!");
 LoginServiceInterface loginServiceInterface = new LoginServiceInterface();
 LobbyServiceInterface lobbyServiceInterface = new LobbyServiceInterface();
 GameServerInterface gameServerInterface = new GameServerInterface();
-string token= loginServiceInterface.LoginScreen();
-Console.WriteLine("After LoginScreen\nToken: "+token);
-string adress=lobbyServiceInterface.JoinLobby(token);
-Console.WriteLine("After Game Server Lobby\nGame Server Adress: " + adress);
-gameServerInterface.Run(adress,token);
+
+    Task<string> loginTask= loginServiceInterface.LoginScreen();
+//loginTask.Start();
+loginTask.Wait();
+if(loginTask.IsCompletedSuccessfully)
+{
+    string token=loginTask.Result;
+    Console.WriteLine("After LoginScreen\nToken: " + token);
+    string adress = lobbyServiceInterface.JoinLobby(token);
+    Console.WriteLine("After Game Server Lobby\nGame Server Adress: " + adress);
+    gameServerInterface.Run(adress, token);
+}
