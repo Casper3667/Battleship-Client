@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BattleShip_ClientService;
 using BattleShip_ClientService.Interfaces;
+using BattleShip_ClientService.Messages;
 using BattleShip_ClientService.Settings;
 using NuGet.Frameworks;
 
@@ -15,7 +17,8 @@ namespace BattleShip_ClientService_UnitTests
         [SetUp]
         public void Setup()
         {
-            //Settings.LoadSettings();
+            Testing.IsTesting= true;
+            Settings.LoadSettings();
             GSI =new GameServerInterface();
             GSI.IsTest = true;
         }
@@ -32,10 +35,13 @@ namespace BattleShip_ClientService_UnitTests
             string adress = "FAKE ADRESS";
             string token = "JWT";
 
-            var result=GSI.ConnectToGameServer(adress, token);
+            bool result=GSI.ConnectToGameServer(adress, token);
 
-            Assert.AreEqual(expect, result);
+            Assert.That(result, Is.EqualTo(expect));
         }
+        #region - CompareScreems TESTS
+
+        
         [Test]
         public void Test_GameServer_CompareScreens_True()
         {
@@ -47,7 +53,7 @@ namespace BattleShip_ClientService_UnitTests
             //byte[,] oldScreen = new byte[2, 2] { { 1, 2 }, { 1, 1 } };
 
             bool result=GSI.CompareScreens(newScreen, oldScreen);
-            Assert.AreEqual(expect, result);
+            Assert.That(result, Is.EqualTo(expect));
 
 
         }
@@ -62,8 +68,9 @@ namespace BattleShip_ClientService_UnitTests
             //byte[,] oldScreen = new byte[2, 2] { { 1, 0 }, { 0, 1 } };
 
             bool result = GSI.CompareScreens(newScreen, oldScreen);
-            Assert.AreEqual(expect, result);
+            Assert.That(result, Is.EqualTo(expect));
         }
+        #endregion
         [Test]
         public void Test_GameServer_SerializeMessage_notBlank()
         {
@@ -72,18 +79,19 @@ namespace BattleShip_ClientService_UnitTests
             {
                 Opponent = "TEST GAME STATE"
             };
-            var result = GSI.SerializeMessage(msg);
-            Assert.AreNotEqual(notExpect, result);
+            string result = GSI.SerializeMessage(msg);
+            Assert.That(result, Is.Not.EqualTo(notExpect));
+           // Assert.AreNotEqual(notExpect, result);
         }
 
         [Test]
         public void Test_GameServer_HandleMessage_RawGameStateMessage()
         {
-            var msg = new RawGameStateMessage()
+            RawGameStateMessage msg = new RawGameStateMessage()
             {
                 Opponent = "TEST GAME STATE"
             };
-            var json = GSI.SerializeMessage(msg);
+            string json = GSI.SerializeMessage(msg);
             IServerMessage? result = GSI.HandleMessage(json);
             //Assert.NotNull(result);
             Assert.IsInstanceOf<RawGameStateMessage>(result);
@@ -93,8 +101,8 @@ namespace BattleShip_ClientService_UnitTests
         [Test]
         public void Test_GameServer_HandleMessage_RawChatMessage()
         {
-            var msg = new RawChatMessage() {From="TEST CHAT" };
-            var json = GSI.SerializeMessage(msg);
+            RawChatMessage msg = new RawChatMessage() {From="TEST CHAT" };
+            string json = GSI.SerializeMessage(msg);
             IServerMessage? result = GSI.HandleMessage(json);
             //Assert.NotNull(result);
             Assert.IsInstanceOf<RawChatMessage>(result);
@@ -105,24 +113,25 @@ namespace BattleShip_ClientService_UnitTests
         public void Test_GameServer_HandleMessage_RawChatMessage_FROM()
         {
             string expect = "Sofie";
-            var msg = new RawChatMessage()
+            RawChatMessage msg = new RawChatMessage()
             {
                 From = expect
             };
-            var json = GSI.SerializeMessage(msg);
+            string json = GSI.SerializeMessage(msg);
             IServerMessage? partresult = GSI.HandleMessage(json);
              Assert.IsInstanceOf<RawChatMessage>(partresult);
             string result = ((RawChatMessage)partresult).From;
 
-            Assert.AreEqual(expect, result);
+            Assert.That(result, Is.EqualTo(expect));
+            //Assert.AreEqual(expect, result);
             //Assert.AreEqual(expect, 0);
 
         }
         [Test]
         public void Test_GameServer_HandleMessage_StartupMessage()
         {
-            var msg = new StartupMessage() { ClientID="TEST STARTUP"};
-            var json = GSI.SerializeMessage(msg);
+            StartupMessage msg = new StartupMessage() { ClientID="TEST STARTUP"};
+            string json = GSI.SerializeMessage(msg);
             IServerMessage? result = GSI.HandleMessage(json);
             //Assert.NotNull(result);
             Assert.IsInstanceOf<StartupMessage>(result);
@@ -134,7 +143,7 @@ namespace BattleShip_ClientService_UnitTests
         {
             //var msg = new StartupMessage();
             //var json = GSI.SerializeMessage(msg);
-            var json = "Not a real Json String";
+            string json = "Not a real Json String";
             
             IServerMessage? result = GSI.HandleMessage(json);
             //Assert.NotNull(result);
@@ -164,17 +173,18 @@ namespace BattleShip_ClientService_UnitTests
         //    string result = GSI.HandleInput(input);
         //    Assert.AreEqual(expect, result);
         //}
-        [Test]
-        public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound_ReturnPressedButton()
-        {
-            Screen screen = new Screen() { ID = 2 };
-            GSI.CurrentScreen = screen;
+        //[Test]
+        //public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound_ReturnPressedButton()
+        //{
+        //    Screen screen = new Screen() { ID = 2 };
+        //    GSI.CurrentScreen = screen;
             
-            ConsoleKey input = ConsoleKey.ExSel;
-            string expect = input.ToString();
-            string result = GSI.HandleInput(input);
-            Assert.AreEqual(expect, result);
-        }
+        //    ConsoleKey input = ConsoleKey.ExSel;
+        //    string expect = input.ToString();
+        //    string result = GSI.HandleInput(input);
+        //    Assert.That(result, Is.EqualTo(expect));
+        //    //Assert.AreEqual(expect, result);
+        //}
         [Test]
         public void Test_GameServer_InputLoop_HandleInput_NoCommandsFound_A()
         {
@@ -184,7 +194,8 @@ namespace BattleShip_ClientService_UnitTests
             ConsoleKey input = ConsoleKey.ExSel;
             string expect = "No Commands Found";
             string result = GSI.HandleInput(input);
-            Assert.AreEqual(expect, result);
+            Assert.That(result,Is.EqualTo(expect));
+           // Assert.AreEqual(expect, result);
         }
         
         [Test]
@@ -255,19 +266,19 @@ namespace BattleShip_ClientService_UnitTests
         //    bool result = GSI.CheckShot(input).valid;
         //    Assert.IsTrue(true);
         //}
-        [Test]
-        public void Test_GameServer_CheckShot_false_NotRightFormat()
-        {
-            string input= "jahkshka";
-            bool result=GSI.CheckShot(input).valid; 
-            Assert.IsFalse(result);
-        }
-        public void Test_GameServer_CheckShot_false_OutOfBunds()
-        {
-            string input = "100,75";
-            bool result = GSI.CheckShot(input).valid;
-            Assert.IsFalse(result);
-        }
+        //[Test]
+        //public void Test_GameServer_CheckShot_false_NotRightFormat()
+        //{
+        //    string input= "jahkshka";
+        //    bool result=GSI.CheckShot(input).valid; 
+        //    Assert.IsFalse(result);
+        //}
+        //public void Test_GameServer_CheckShot_false_OutOfBunds()
+        //{
+        //    string input = "100,75";
+        //    bool result = GSI.CheckShot(input).valid;
+        //    Assert.IsFalse(result);
+        //}
 
 
         [Test]

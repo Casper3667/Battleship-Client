@@ -1,4 +1,6 @@
-﻿using BattleShip_ClientService.Settings;
+﻿using BattleShip_ClientService.Handlers;
+using BattleShip_ClientService.Messages;
+using BattleShip_ClientService.Settings;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -20,21 +22,26 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using static BattleShip_ClientService.Messages.IServerMessage;
 
 namespace BattleShip_ClientService.Interfaces
 {
     public class GameServerInterface
     {
-
+        //--- StartUp Related Variables --------
+        public string Name { get; private set; }
+        public bool IsGameReady { get; private set; }
+        public string OtherPlayerName { get; private set; }
 
         const string END_OF_MESSAGE = "#END#";
-        bool useEndMessage;
+        bool useEndMessage=true;
         bool first = true;
         bool isCleared = false;
 
         bool KeyHasBeenPressed = false;
         bool IsInInputField = false;
 
+      
         ConsoleColor DefaultBackgroundsColor = ConsoleColor.Black;
         ConsoleColor DefaultForegroundColor = ConsoleColor.Gray;
 
@@ -58,6 +65,8 @@ namespace BattleShip_ClientService.Interfaces
 
         Stack<Screen> previousScreens = new Stack<Screen>();
 
+        ShotHandler shotHandler;
+        public string CurrentShotFeedback = "x,y";
 
         bool LogFeedback = false;
         //CancellationTokenSource readLinecancellationTokenSource;
@@ -69,10 +78,14 @@ namespace BattleShip_ClientService.Interfaces
         public GameServerInterface()
         {
             // TODO: If I Split Game Server Interface this beneath needs to be in the new Constructor
-           //readLinecancellationTokenSource = new CancellationTokenSource();
+            //readLinecancellationTokenSource = new CancellationTokenSource();
             //readKeySource = new CancellationTokenSource();
             //readLineToken=cancellationTokenSource.Token;
             //readLineTaskFactory = new TaskFactory<string>(readLineToken);
+
+            shotHandler = new ShotHandler(/*ref CurrentShotFeedback,*/ this);
+
+
         }
         private void TEST_Make_Random_Move()
         {
@@ -136,6 +149,7 @@ namespace BattleShip_ClientService.Interfaces
 
             }
 
+            // TODO: LISTENING THREAD Uncomment SetupListening Thread for when communicating with Game Server 
 
             ///Setup Listening Thread
             //SetupListeningThread();
@@ -253,15 +267,33 @@ namespace BattleShip_ClientService.Interfaces
         }
 
 
-        // TODO: Make code for SendShotToGameServer
-        public void SendShotToGameServer(string shot)
-        {
 
+        public void SendShotToGameServer(Vector2? shot)
+        {
+            Vector2 Shot;
+            if (shot != null)
+            {
+                Shot = (Vector2)shot;
+            }
+            else
+            {
+                Debug.Fail("For Some Reason SendShotToGameServer Was sent a Null value");
+                Shot = new Vector2(-1, -1); // if For SOME REASON it got sent a null, then it sends An  Invalid Shot1
+            }
+                
+            ShotMessage message = new ShotMessage((int)Shot.X, (int)Shot.Y);
+            string readyMessage=SerializeMessage(message);
+            SendMessage(readyMessage,stream);
         }
-        // TODO: Make code for SendChatMessageToGameServer
+
         public void SendChatMessageToGameServer(string message, ChatType chatType)
         {
-            CurrentFeedback = "Send Message: " + message;
+
+            RawChatMessageFromClient chatMessage = new RawChatMessageFromClient(Name,chatType, message);
+            string readyMessage = SerializeMessage(message);
+            SendMessage(readyMessage, stream);
+
+            //CurrentFeedback = "Send Message: " + message;
         }
         #endregion
         #region Message Handeling
@@ -367,7 +399,9 @@ namespace BattleShip_ClientService.Interfaces
             RawChatHandelingThread.Start();
 
         }
-        #region Handle GameState Messages
+
+
+        #region --------------------Handle GameState Messages--------------------
         public void HandleRawGameStateMessageLoop()
         {
             while (client.Connected)
@@ -385,6 +419,65 @@ namespace BattleShip_ClientService.Interfaces
         }
         public void HandleRawGameStateMessage(RawGameStateMessage message)
         {
+            if(IsGameReady ==false)
+            {
+                OtherPlayerName = message.Opponent;
+                IsGameReady = true;
+            }
+            CurrentFeedback = message.LastAction;
+            AttackScreen = TranslateScreen(message.AttackScreen);
+            DefenceScreen =TranslateScreen(message.DefenceScreen);
+            IsGameDone = message.GameDone;
+            IsLeading= message.IsLeading; ;
+            IsClientTurn = message.PlayerTurn;
+
+          
+            if (IsGameDone)
+                GameDoneCode();
+
+        }
+        public byte[] TranslateScreen(string screen)
+        {
+            try
+            {
+                string[] elements = screen.Split(',');
+                if(IsTest)
+                {
+                    TestPrint("Elements Before Cast: ");
+                    foreach (string element in elements)
+                        TestPrint("- " + element);
+                }
+                List<byte> temp = new();
+                foreach(string element in elements)
+                {
+                    temp.Add(byte.Parse(element));
+                }
+                if(IsTest)
+                {
+                    TestPrint("Elements After First Cast: ");
+                    foreach (var element in temp)
+                        TestPrint("- " + element);
+                }
+
+
+                byte[] result = temp.ToArray();
+                if (IsTest)
+                {
+                    TestPrint("Elements After Second Cast: ");
+                    foreach (var element in result)
+                        TestPrint("- " + element);
+                }
+
+                return result;
+            }
+            catch (Exception e)
+            {
+                Debug.Fail("Couldnt Translate Screeen From Game Server: " + e);
+
+                return new byte[ShotHandler.gridSize ^ 2];
+                //throw;
+            }
+            
 
         }
         private void Register_RawGameStateMessage(RawGameStateMessage message)
@@ -401,7 +494,7 @@ namespace BattleShip_ClientService.Interfaces
             return message;
         }
         #endregion
-        #region Handle Chat Messages
+        #region --------------------Handle Chat Messages--------------------
         public void HandleRawChatMessageLoop()
         {
             while (client.Connected)
@@ -416,9 +509,16 @@ namespace BattleShip_ClientService.Interfaces
                     Thread.Sleep(100);
             }
         }
+        /// <summary>
+        /// Adds Chat Messages to the New Chat Messages Queue
+        /// it is in the format  "[From][TO]: MESSAGE"
+        /// </summary>
+        /// <param name="message"></param>
         public void HandleRawChatMessage(RawChatMessage message)
         {
-
+            string chatMessage = $"[{message.From}][{message.To}]:{message.Message}";
+            TestPrint("Chat Message: "+chatMessage);
+            AddNewChatMessage(chatMessage);
         }
         private void Register_RawChatMessage(RawChatMessage message)
         {
@@ -435,10 +535,18 @@ namespace BattleShip_ClientService.Interfaces
         }
 
         #endregion
-        #region Handle Startup Message
+        #region --------------------Handle Startup Message--------------------
         public void HandleStartupMessage(StartupMessage message)
         {
+            Name = message.ClientID;
+            IsGameReady =message.GameReady;
+            if (message.OtherPlayer != null)
+                OtherPlayerName = message.OtherPlayer;
 
+            if (IsGameReady ==false)
+            {
+                CurrentFeedback = "Waiting For Other Player";
+            }
         }
         #endregion
 
@@ -572,7 +680,8 @@ namespace BattleShip_ClientService.Interfaces
                 throw (new Exception($"This Key [{key.ToString()}] Has multiple Keybinds in this screen: " + currentScreen.Name));
             }
             else
-                result = key.KeyChar.ToString();
+                result = "No Commands Found";
+                //result = key.KeyChar.ToString();
             TestPrint("Handle_Input result: " + result);
             return result;
         }
@@ -596,9 +705,18 @@ namespace BattleShip_ClientService.Interfaces
             string theoreticalMethodName = "Command_" + command.ToString();
             
             TestPrint("Looking for Method with name: " + theoreticalMethodName);
+            try
+            {
+                CommandMethod = this.GetType().GetMethod(theoreticalMethodName);
+            }
+            catch (Exception e)
+            {
+                TestPrint($"Couldnt Find Method for this command [{command.ToString()}");
+                Debug.Fail($"Couldnt Find Method for this command [{command.ToString()}] exeption: " + e);
+            }
+            
 
-            CommandMethod = this.GetType().GetMethod(theoreticalMethodName);
-
+            TestPrint("CommandMehtod: " + CommandMethod);
             //this.GetType().GetMethods(BindingFlags.NonPublic).ToList().ForEach(method =>
             //{
             //    if (CommandMethod == null)
@@ -613,10 +731,8 @@ namespace BattleShip_ClientService.Interfaces
 
             if (CommandMethod != null)
             {
-
-                string response = (string)CommandMethod.Invoke(this,null);
-                
-                
+                TestPrint("- "+CommandMethod.Name);
+                string response = (string)((MethodInfo)CommandMethod).Invoke(this,null);
                 result = "METHOD FOUND"+" "+response;
             }
             else
@@ -644,6 +760,7 @@ namespace BattleShip_ClientService.Interfaces
         }
         public string Command_OpenShootingScreen()
         {
+            TestPrint("Running Command OpenShootingScreen");
             //TEST_Make_Random_Move();
             IsInInputField = true;
             OpenNewScreen(Settings.Settings.Screens[(int)ScreenID.Shooting_Screen]);
@@ -743,7 +860,12 @@ namespace BattleShip_ClientService.Interfaces
             NewChatMessages.Enqueue(new ChatMessage(message));
             NewChatMessageMutex.ReleaseMutex();
         }
-        private ChatMessage RemoveMessageFromNewChatMessage()
+        /// <summary>
+        /// For getting Message out of New MEssages.
+        /// The only reason its public is so that the Test code can use it.
+        /// </summary>
+        /// <returns></returns>
+        public ChatMessage RemoveMessageFromNewChatMessage()
         {
 
             NewChatMessageMutex.WaitOne();
@@ -822,12 +944,11 @@ namespace BattleShip_ClientService.Interfaces
 
         #endregion
         #region Game Stuff
-        byte[] AttackScreen = new byte[100];
-        byte[] DefenceScreen = new byte[100];
+        public byte[] AttackScreen { get; private set; } = new byte[100];
+        public byte[] DefenceScreen { get; private set; } = new byte[100];
         //byte[,] AttackScreen = new byte[10, 10];
         //byte[,] DefenceScreen = new byte[10, 10];
-        public bool IsClientTurn { get; set; } = true; // TODO: Set IsClientTurn To False after testing
-
+        
         public List<string> FeedbackLog = new List<string>();
         private string currentFeedback;
         public string CurrentFeedback { 
@@ -847,15 +968,26 @@ namespace BattleShip_ClientService.Interfaces
                 }
                 currentFeedback = value;
             } }
+        
+        public bool IsGameDone { get; private set; }
+        public bool IsLeading { get; private set; }
+        public bool IsClientTurn { get; private set; }
 
-        public string CurrentShotFeedback="x,y";
-
-        // TODO: Write Code for Checking Shot is Valid
-        public (bool valid,string feedback) CheckShot(string shot)
+        // TODO: Make Client Code for When Game Ìs Done
+        public void GameDoneCode()
         {
-            CurrentFeedback="Shot at"+shot;
-            return (false,"Invalid Shot");
+            IsClientTurn = false; // When Game Is Done This Is Automatically set to False to avoid sending more shots to Server
+            string winner;
+            if (IsLeading)
+                winner = Name;
+            else
+                winner = OtherPlayerName;
+
+            CurrentFeedback = $"Game Is Done, {winner} Won";
+
         }
+
+
 
         #endregion
 
@@ -910,9 +1042,12 @@ namespace BattleShip_ClientService.Interfaces
         }
         private void ClearScreen()
         {
-            Console.Clear();
+            
+            if (Testing.IsTesting==false) //To Avoid Fails in Tests // TODO: If Something Fails when Clearing screen This might be Why
+                Console.Clear();
             isCleared = true;
-            oldWidth = Console.WindowWidth;
+            if(Testing.IsTesting==false)
+                oldWidth = Console.WindowWidth;
             //if(first==false)
             //{
             //    Console.WindowHeight = oldHeight;
@@ -1340,10 +1475,10 @@ namespace BattleShip_ClientService.Interfaces
                     }
                     else 
                     {
-                        (bool valid, string feedback) = CheckShot(shot);
+                        (bool valid, string feedback,Vector2? shotVector) = shotHandler.CheckShot(shot);
                         if (valid)
                         {
-                            SendShotToGameServer(shot);
+                            SendShotToGameServer(shotVector);
                             GoToPreviousScreen(true); // Goes back to Game_Area after shot;
                         }
                         else
@@ -1626,6 +1761,18 @@ namespace BattleShip_ClientService.Interfaces
                 Console.WriteLine(text);
             }
         }
+/// <summary>
+/// For Testing OffLine To Make It Your Turn, Remember Game Server Wont React On Your Shot untill it is Your Turn 
+/// But it Will remember the Latest Shot You Made that hasnt been proceessed yet.
+/// </summary>
+/// <param name="isTurn"></param>
+        public void TEST_SetClientTurn(bool isTurn)
+        {
+            if(IsTest)
+            {
+                IsClientTurn = isTurn;
+            }
+        }
 
         #endregion
 
@@ -1676,10 +1823,7 @@ namespace BattleShip_ClientService.Interfaces
         Shooting_Screen=4
     }
 
-    public interface IServerMessage
-    {
-
-    }
+    
     public class GameServerMessage
     {
         public string MessageType { get; set; }
@@ -1691,53 +1835,7 @@ namespace BattleShip_ClientService.Interfaces
 
 
     }
-    public class StartupMessage : IServerMessage
-    {
-        [JsonInclude]
-        public string ClientID { get; set; }
-        //public string DefenceScreen { get; set; }
-        [JsonInclude]
-        public bool GameReady { get; set; }
-        [JsonInclude]
-        public string? OtherPlayer { get; set; }
-
-
-        public StartupMessage() { }
-
-    }
-    public class RawChatMessage:IServerMessage
-    {
-        [JsonInclude]
-        public string From { get; set; }
-        [JsonInclude]
-        public string To { get; set; }
-        [JsonInclude]
-        public string Message { get; set; }
-        
-       // public RawChatMessage() { }
-    }
-    //[System.AttributeUsage(System.AttributeTargets.Field| System.AttributeTargets.Property,AllowMultiple =false)]
-    //[JsonAttribute(JsonIncludeAttribute)]
    
-    public class RawGameStateMessage:IServerMessage
-    {
-        [JsonInclude]
-        public string Opponent { get; set; }
-        [JsonInclude]
-        public string LastAction { get; set; }
-        [JsonInclude]
-        public string AttackScreen { get; set; }
-        [JsonInclude]
-        public string DefenceScreen { get; set; }
-        [JsonInclude]
-        public bool GameDone { get; set; } 
-        [JsonInclude]
-        public bool IsLeading { get; set; }
-        [JsonInclude]
-        public bool PlayerTurn { get; set; }
-        //public RawGameStateMessage() { }
-    }
-    
     
 
 }

@@ -10,38 +10,59 @@ namespace BattleShip_ClientService.Settings
 {
     public static class Settings
     {
+        public static bool IsSettingsLoaded { get; private set; } = false;
         public static Dictionary<int, View> Views { get; private set; } = new Dictionary<int, View>();
         public static Dictionary<int, Screen> Screens { get; private set; }
 
         public static void LoadSettings()
         {
-
-            //System.IO.Path.GetDirectoryName()
-
-
-            LoadViews();
-            LoadScreens();
-
-
+            if(IsSettingsLoaded==false)
+            {
+                Testing.Print("Loading Settings");
+                LoadViews();
+                LoadScreens();
+                IsSettingsLoaded = true;
+            }
+            else
+            {
+                Testing.Print("Settings Already Loaded");
+            }
         }
+
+
 
         private static List<T> LoadJSON<T>(string FileName)
         {
 
 
 #if DEBUG
+            Testing.Print("Is In Debug Mode");
             string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            Console.WriteLine("Path: " + System.IO.Path.GetDirectoryName(path));
+            Testing.Print("Path: " + System.IO.Path.GetDirectoryName(path));
+           
             string Identifier = "\\BattleShip_ClientService_Repo\\BattleShip_ClientService\\";
-            var forginPath = path.Split(Identifier)[0];
-            Console.WriteLine("forgin Path: " + forginPath);
+            string TestIdentifier = "\\BattleShip_ClientService_Repo\\BattleShip_ClientService_UnitTests\\"; // Indicates that it is a test and splits where the Test Begins to get the part of the Path that should vary form computer to Computer
+            string forginPath="";
+            if (path.Contains(Identifier))
+            {
+                forginPath= path.Split(Identifier)[0];
+            }
+            else if(path.Contains(TestIdentifier))
+            {
+                forginPath = path.Split(TestIdentifier)[0];
+            }
+            
+            Testing.Print("forgin Path: " + forginPath);
 
             string newPath = forginPath + Identifier;
-            Console.WriteLine("new Path: " + newPath);
-            FileName= newPath + "Settings\\" + FileName;
-            Console.WriteLine("views Path: " + FileName);
+            Testing.Print("new Path: " + newPath);
+            FileName = newPath + "Settings\\" + FileName;
+            Testing.Print("views Path: " + FileName);
 
 #endif
+
+            //FileName = "Settings\\" + FileName;
+
             List<T> items = new List<T>();
             using (StreamReader r = new StreamReader(FileName))
             {
