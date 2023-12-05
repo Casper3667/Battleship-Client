@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static BattleShip_ClientService.Interfaces.GameServerInterface;
 
 namespace BattleShip_ClientService.Messages
 {
@@ -26,11 +27,13 @@ namespace BattleShip_ClientService.Messages
     public class RawChatMessageFromClient : IClientMessage
     {
         public string From { get; set; }
+        public ChatType To { get; set; }
         public string Message { get; set; }
         public bool ValidRawChatMessageFromClient { get; set; }
-        public RawChatMessageFromClient(string from, string message,bool valid=true)
+        public RawChatMessageFromClient(string from,ChatType to, string message,bool valid=true)
         {
             From= from;
+            To= to;
             Message= message;
             ValidRawChatMessageFromClient = valid;
 

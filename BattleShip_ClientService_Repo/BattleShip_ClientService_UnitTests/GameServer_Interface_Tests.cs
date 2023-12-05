@@ -39,6 +39,9 @@ namespace BattleShip_ClientService_UnitTests
 
             Assert.That(result, Is.EqualTo(expect));
         }
+        #region - CompareScreems TESTS
+
+        
         [Test]
         public void Test_GameServer_CompareScreens_True()
         {
@@ -67,6 +70,7 @@ namespace BattleShip_ClientService_UnitTests
             bool result = GSI.CompareScreens(newScreen, oldScreen);
             Assert.That(result, Is.EqualTo(expect));
         }
+        #endregion
         [Test]
         public void Test_GameServer_SerializeMessage_notBlank()
         {

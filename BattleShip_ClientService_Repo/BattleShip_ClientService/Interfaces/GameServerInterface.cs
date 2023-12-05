@@ -288,7 +288,8 @@ namespace BattleShip_ClientService.Interfaces
 
         public void SendChatMessageToGameServer(string message, ChatType chatType)
         {
-            RawChatMessageFromClient chatMessage = new RawChatMessageFromClient(Name, message);
+
+            RawChatMessageFromClient chatMessage = new RawChatMessageFromClient(Name,chatType, message);
             string readyMessage = SerializeMessage(message);
             SendMessage(readyMessage, stream);
 
@@ -398,7 +399,9 @@ namespace BattleShip_ClientService.Interfaces
             RawChatHandelingThread.Start();
 
         }
-        #region Handle GameState Messages
+
+
+        #region --------------------Handle GameState Messages--------------------
         public void HandleRawGameStateMessageLoop()
         {
             while (client.Connected)
@@ -491,7 +494,7 @@ namespace BattleShip_ClientService.Interfaces
             return message;
         }
         #endregion
-        #region Handle Chat Messages
+        #region --------------------Handle Chat Messages--------------------
         public void HandleRawChatMessageLoop()
         {
             while (client.Connected)
@@ -532,7 +535,7 @@ namespace BattleShip_ClientService.Interfaces
         }
 
         #endregion
-        #region Handle Startup Message
+        #region --------------------Handle Startup Message--------------------
         public void HandleStartupMessage(StartupMessage message)
         {
             Name = message.ClientID;
