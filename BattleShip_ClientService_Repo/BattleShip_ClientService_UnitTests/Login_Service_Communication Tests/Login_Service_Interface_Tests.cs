@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using BattleShip_ClientService;
 using BattleShip_ClientService.Interfaces;
+using BattleShip_ClientService.Settings;
 
 namespace BattleShip_ClientService_UnitTests
 {
@@ -16,6 +17,7 @@ namespace BattleShip_ClientService_UnitTests
         [SetUp]
         public void Setup()
         {
+            Settings.LoadSettings();
             loginServiceInterface = new LoginServiceInterface();
         }
 
@@ -25,6 +27,12 @@ namespace BattleShip_ClientService_UnitTests
             Assert.Pass();
         }
 
+
+        [Test] public void Test_LoginService_GetURL() 
+        {
+            TestContext.WriteLine("URL: "+loginServiceInterface.GetURL());
+            Assert.Pass();
+        }
         
         // TODO: TEST Fix this test, i think its the fact it calls on the Console.Width and Height when the console isnt up that is the problem
         //[Test]
