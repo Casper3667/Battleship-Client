@@ -37,9 +37,9 @@ namespace BattleShip_ClientService_UnitTests
         public void Test_Settings_GetLoginServiceIP()
         {
             TestContext.WriteLine("Getting IP for Login Service");
-            string ip = Settings.GetLoginServiceSettings();
+            string ip = Settings.GetNetworkSettings();
             TestContext.WriteLine($"IP: {ip}");
-            Assert.That(ip, Is.EqualTo(Settings.LoginServiceSettings.IP));
+            Assert.That(ip, Is.EqualTo(Settings.NetworkSettings.Name));
         }
         #endregion
 

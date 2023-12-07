@@ -164,7 +164,7 @@ namespace BattleShip_ClientService.Interfaces
 
         #region TCP Stuff
 
-        private bool ConnectToServer(string address, string token)
+        private  bool ConnectToServer(string address, string token)
         {
             try
             {
@@ -179,8 +179,8 @@ namespace BattleShip_ClientService.Interfaces
             stream = client.GetStream();
 
             /// Send Token
-            SendJWTToken(token);
-            string message = RecieveJWTFeedback();
+            JWTHandler.SendJWTToken(token,stream);
+            string message =  JWTHandler.RecieveJWTFeedback(stream,TimeSpan.FromSeconds(10));
 
             Thread.Sleep(1000);
             bool connected = client.Connected;
@@ -196,21 +196,7 @@ namespace BattleShip_ClientService.Interfaces
             /// Listen for Feedback to Token, And if Allowed In
 
         }
-        private void SendJWTToken(string jwt)
-        {
-            StreamWriter writer = new StreamWriter(stream);
-            writer.Write(jwt);
-            writer.Flush();
-        }
-        private string RecieveJWTFeedback()
-        {
 
-            StreamReader reader = new StreamReader(stream);
-
-
-
-            return reader.ReadLine();
-        }
 
         public void RecieveData(NetworkStream stream)
         {
