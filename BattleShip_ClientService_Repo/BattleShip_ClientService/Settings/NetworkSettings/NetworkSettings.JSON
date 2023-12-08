@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "NetworkSettings",
+    "LoginIP": "192.168.87.176",
+    "LoginPORT": 8081,
+    "LobbyIP": "192.168.87.176",
+    "LobbyPORT": 31000,
+    "LobbyMaxWaitTimeSeconds": 60
+  }
+]
+  

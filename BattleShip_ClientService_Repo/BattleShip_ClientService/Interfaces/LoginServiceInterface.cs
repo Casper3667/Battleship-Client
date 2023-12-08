@@ -94,8 +94,8 @@ namespace BattleShip_ClientService.Interfaces
 
         public string GetURL()
         {
-            string ip = Settings.Settings.LoginServiceSettings.IP;
-            int port = Settings.Settings.LoginServiceSettings.PORT;
+            string ip = Settings.Settings.NetworkSettings.LoginIP;
+            int port = Settings.Settings.NetworkSettings.LoginPORT;
             string result = startOFPath +ip + ":" + port + pathToController;
             return result;
         }

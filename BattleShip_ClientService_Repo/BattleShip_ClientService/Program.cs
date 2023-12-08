@@ -1,10 +1,10 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using BattleShip_ClientService.Interfaces;
 using BattleShip_ClientService.Settings;
-
+using System.Diagnostics;
 
 Settings.LoadSettings();
-Console.WriteLine("Hello, World!");
+//Console.WriteLine("Hello, World!");
 LoginServiceInterface loginServiceInterface = new LoginServiceInterface();
 LobbyServiceInterface lobbyServiceInterface = new LobbyServiceInterface();
 GameServerInterface gameServerInterface = new GameServerInterface();
@@ -15,8 +15,19 @@ loginTask.Wait();
 if(loginTask.IsCompletedSuccessfully)
 {
     string token=loginTask.Result;
-    Console.WriteLine("After LoginScreen\nToken: " + token);
-    string adress = lobbyServiceInterface.JoinLobby(token);
-    Console.WriteLine("After Game Server Lobby\nGame Server Adress: " + adress);
-    gameServerInterface.Run(adress, token);
+
+    Debug.WriteLine("After LoginScreen\nToken: " + token);
+    
+    ServerAdress? adress = lobbyServiceInterface.JoinLobby(token);
+    if(adress != null)
+    {
+        Console.WriteLine("After Game Server Lobby\nGame Server Adress:\nIP: " + adress.IP+"\nPort: "+adress.Port);
+        Debug.WriteLine("After Game Server Lobby\nGame Server Adress:\nIP: " + adress.IP + "\nPort: " + adress.Port);
+        gameServerInterface.Run(adress, token);
+    }
+    else
+    {
+        Console.WriteLine("Didn't Connect");
+    }
+   
 }

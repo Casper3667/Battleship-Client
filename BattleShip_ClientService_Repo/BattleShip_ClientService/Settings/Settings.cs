@@ -1,5 +1,5 @@
 ﻿using BattleShip_ClientService.Interfaces;
-using BattleShip_ClientService.Settings.LoginServiceInterfaceSettings;
+using BattleShip_ClientService.Settings.NetworkSettings;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,7 +16,7 @@ namespace BattleShip_ClientService.Settings
         public static bool IsSettingsLoaded { get; private set; } = false;
         public static Dictionary<int, View> Views { get; private set; } = new Dictionary<int, View>();
         public static Dictionary<int, Screen> Screens { get; private set; }
-        public static LoginServiceInterfaceSettings.LoginServiceInterfaceSettings LoginServiceSettings { get; private set; }
+        public static NetworkSettings.NetworkSettings NetworkSettings { get; private set; }
 
         public static void LoadSettings()
         {
@@ -26,7 +26,7 @@ namespace BattleShip_ClientService.Settings
 
                 LoadViews();
                 LoadScreens();
-                GetLoginServiceSettings();
+                GetNetworkSettings();
                 IsSettingsLoaded = true;
             }
             else
@@ -35,21 +35,21 @@ namespace BattleShip_ClientService.Settings
             }
         }
 
-        public static string GetLoginServiceSettings()
+        public static string GetNetworkSettings()
         {
-           var settings =LoadJSON<LoginServiceInterfaceSettings.LoginServiceInterfaceSettings>("LoginServiceInterfaceSettings\\LoginServiceInterfaceSettings.JSON");
+           var settings =LoadJSON<NetworkSettings.NetworkSettings>("NetworkSettings\\NetworkSettings.JSON");
             if (settings != null && settings.Any())
             {
-                string ip = settings[0].IP;
-                LoginServiceSettings = settings[0];
+                
+                NetworkSettings = settings[0];
                 //LoginServiceIPAdress = ip;
-                return ip;
+                return settings[0].Name;
             }
             else
             {
-                Testing.Print("Couldnt Find IP So returned Local Host");
-                Debug.Fail("Couldnt Find IP So returned Local Host");
-                return "localHost";
+                Testing.Print("Couldnt Find NetworkSettings So returned ERROR");
+                Debug.Fail("Couldnt Find NetworkSettings So returned ERROR");
+                return "ERROR";
             }
             //using (StreamReader r = new StreamReader(GetPathToSettingsFile("LoginServiceInterfaceSettings\\LoginServiceInterfaceSettings.JSON")))
             //{
