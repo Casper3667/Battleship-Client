@@ -62,7 +62,7 @@ namespace BattleShip_ClientService.Interfaces
                         string adress = ListenForServerAdress(stream, TimeSpan.FromSeconds(Settings.Settings.NetworkSettings.LobbyMaxWaitTimeSeconds));
                         if (adress != GetServerErrorMessage)
                         {
-                            Console.WriteLine("Got Server Adress");
+                            Console.WriteLine("Got Potential Server Adress");
                             return HandleServerAdress(adress);
                         }
                         else
@@ -153,6 +153,7 @@ namespace BattleShip_ClientService.Interfaces
                 try
                 {
                     ServerAdress? result=JsonSerializer.Deserialize<ServerAdress>(adressMessage);
+                    Console.WriteLine("Got Valid Server Adress");
                     return result;
 
                 }
@@ -164,7 +165,11 @@ namespace BattleShip_ClientService.Interfaces
                 }
             }
             else
+            {
+                Console.WriteLine("Game Lobby Message: " + adressMessage);
                 return null;
+            }
+                
 
            
         }

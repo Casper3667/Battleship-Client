@@ -28,6 +28,10 @@ if(loginTask.IsCompletedSuccessfully)
     else
     {
         Console.WriteLine("Didn't Connect");
+        Debug.WriteLine("Didn't Connect");
+        Debug.WriteLine("Trying To Connect Anyway");
+        ServerAdress temp=new ServerAdress() { IP = Settings.NetworkSettings.LobbyIP,Port=13000};
+        gameServerInterface.Run(temp, token);
     }
    
 }

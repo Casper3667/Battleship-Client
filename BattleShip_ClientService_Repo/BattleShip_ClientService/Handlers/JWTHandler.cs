@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BattleShip_ClientService.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,9 +11,11 @@ namespace BattleShip_ClientService.Handlers
 {
     public static class JWTHandler
     {
+        
         public static void SendJWTToken(string jwt, NetworkStream stream)
         {
             StreamWriter writer = new StreamWriter(stream);
+            Console.WriteLine($"Sending this JWT:[{jwt}]");
             writer.WriteLine(jwt);
             writer.Flush();
         }
@@ -71,6 +74,39 @@ namespace BattleShip_ClientService.Handlers
             //}
 
 
+        }
+        public static string RecieveJWTFeedbackServer(NetworkStream stream)
+        {
+            string message = RecieveData(stream);
+
+            return message;
+
+            
+
+        }
+        internal static string RecieveData(NetworkStream stream)
+        {
+            StringBuilder sb = new StringBuilder();
+            byte[] tempBytes = new byte[1];
+            while (true)
+            {
+                int bytesRead = stream.Read(tempBytes);
+                if (bytesRead == 0) { break; }
+                string recievedData = Encoding.UTF8.GetString(tempBytes);
+                if (GameServerInterface.useEndMessage)
+                {
+                    if (recievedData.Contains(GameServerInterface.END_OF_MESSAGE)) { break; }
+                    sb.Append(recievedData);
+                }
+                else
+                {
+                    sb.Append(recievedData);
+                    break;
+                }
+
+
+            }
+            return sb.ToString();
         }
     }
 }

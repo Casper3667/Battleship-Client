@@ -13,6 +13,8 @@ namespace BattleShip_ClientService_UnitTests.Login_Service_Communication_Tests
         string HashValueFor_PASSWORD = "319F4D26E3C536B5DD871BB2C52E3178";
         string HashValueFor_Password = "DC647EB65E6711E155375218212B3964";
         string HashValueFor_password = "5F4DCC3B5AA765D61D8327DEB882CF99";
+        string HashValueFor_Sofie = "D8C5EBEDCA49B89FE1A845B536CADFE2";
+        string HashValueFor_Casper = "E864A59D5D3FB7D439DD4DDD4797AB22";
         [SetUp]
         public void Setup()
         {
@@ -39,6 +41,13 @@ namespace BattleShip_ClientService_UnitTests.Login_Service_Communication_Tests
             getHash("PASSWORD");
             getHash("Password");
             getHash("password");
+            Assert.Pass();
+        }
+        [Test]
+        public void Test_PH_HashPassword_CasperAndSofie()
+        {
+            getHash("Casper");
+            getHash("Sofie");
             Assert.Pass();
         }
         private void getHash(string input)

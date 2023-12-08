@@ -33,8 +33,8 @@ namespace BattleShip_ClientService.Interfaces
         public bool IsGameReady { get; private set; }
         public string OtherPlayerName { get; private set; }
 
-        const string END_OF_MESSAGE = "#END#";
-        bool useEndMessage=true;
+        public const string END_OF_MESSAGE = "#END#";
+        public const bool useEndMessage=false;
         bool first = true;
         bool isCleared = false;
 
@@ -133,7 +133,8 @@ namespace BattleShip_ClientService.Interfaces
             else
             {
                 Console.WriteLine("Couldnt Connect To Game Server");
-                throw new Exception("Couldnt Connect To Game Server ");
+                
+               //' throw new Exception("Couldnt Connect To Game Server ");
             }
         }
 
@@ -144,31 +145,34 @@ namespace BattleShip_ClientService.Interfaces
             client = new TcpClient();
             /// Connect Client To Server
 
-            if (true/*ConnectToServer(address, token)*/)
+            if (ConnectToServer(address, token))
             {
+                // TODO: LISTENING THREAD Uncomment SetupListening Thread for when communicating with Game Server 
 
+                ///Setup Listening Thread
+                SetupListeningThread();
+
+                StartHandelingThreads();
+
+
+                return true;
             }
-
-            // TODO: LISTENING THREAD Uncomment SetupListening Thread for when communicating with Game Server 
-
-            ///Setup Listening Thread
-            //SetupListeningThread();
-
-            StartHandelingThreads();
-
-
-            return true;
+            else
+                return false;
         }
 
 
 
         #region TCP Stuff
 
-        private  bool ConnectToServer(string address, string token)
+
+
+        private  bool ConnectToServer(ServerAdress address, string token)
         {
             try
             {
-                client.Connect(address, 00000000000000000000000000000000000); // We need to get the Port from somewhere
+                Console.WriteLine("Trying To Connect To Server");
+                client.Connect(address.IP, address.Port); // We need to get the Port from somewhere
             }
             catch (Exception e)
             {
@@ -176,17 +180,32 @@ namespace BattleShip_ClientService.Interfaces
                 return false;
                 throw;
             }
+            Console.WriteLine("Connected To Server");
             stream = client.GetStream();
 
+
+            Console.WriteLine("Sending JWT");
             /// Send Token
             JWTHandler.SendJWTToken(token,stream);
+            Console.WriteLine("Waiting For Feedback to JWT");
             string message =  JWTHandler.RecieveJWTFeedback(stream,TimeSpan.FromSeconds(10));
-
+            Console.WriteLine($"Message Regarding JWT: [{message}]");
+            Debug.WriteLine($"Message Regarding JWT: [{message}]");
             Thread.Sleep(1000);
             bool connected = client.Connected;
-            if (connected)
+
+
+            if (connected && message != "" && message != null) 
             {
-                HandleMessage(message);
+                Console.WriteLine("Handeling Startup Message: " + message);
+                Debug.WriteLine("Handeling Startup Message: " + message);
+                HandleMessage(message); // Should Be Handeling a Startup Message
+            }
+            else
+            {
+                Console.WriteLine("You Werent Accepted");
+                Debug.WriteLine("You Werent Accepted");
+                connected = false;
             }
 
 
@@ -200,6 +219,7 @@ namespace BattleShip_ClientService.Interfaces
 
         public void RecieveData(NetworkStream stream)
         {
+            throw new Exception("We dont Want to Recieve Messages like this");
             while (client.Connected)
             {
                 StringBuilder sb = new StringBuilder();
@@ -228,16 +248,55 @@ namespace BattleShip_ClientService.Interfaces
 
 
         }
+        public void RecieveDataLines(NetworkStream stream)
+        {
+            try
+            {
+                StreamReader reader = new(stream);
+
+                //string message = reader.ReadLine() ?? "";
+                //return message;
+                while (client.Connected)
+                {
+                    string message = reader.ReadLine() ?? "";
+                    Debug.WriteLine("Handeling Message:\n" + message);
+                    HandleMessage(message);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine("Error Occured when Listening for MEssages:\n" + e);
+                //throw;
+            }
+        }
+
+        internal string RecieveDataLine(NetworkStream stream)
+        {
+            StreamReader reader = new(stream);
+
+            string message = reader.ReadLine() ?? "";
+            return message;
+        }
         private void SendMessage(string msg, NetworkStream stream)
         {
+            throw new Exception("We dont Want to Recieve Messages like this");
             Byte[] data = Encoding.UTF8.GetBytes((useEndMessage) ? msg + END_OF_MESSAGE : msg);
             stream.Write(data, 0, data.Length);
+        }
+        internal void SendMessageLine(string msg, NetworkStream stream)
+        {
+            //Byte[] data = Encoding.UTF8.GetBytes((useEndMessage) ? msg + END_OF_MESSAGE : msg);
+            StreamWriter writer = new(stream);
+            Debug.WriteLine("Sending Message: " + msg);
+            writer.WriteLine(msg);
+            writer.Flush();
+            //stream.Write(data, 0, data.Length);
         }
         private void SetupListeningThread()
         {
             try
             {
-                listeningThread = new Thread(() => RecieveData(stream))
+                listeningThread = new Thread(() => RecieveDataLines(stream))
                 {
                     IsBackground = true
                 };
@@ -269,15 +328,15 @@ namespace BattleShip_ClientService.Interfaces
                 
             ShotMessage message = new ShotMessage((int)Shot.X, (int)Shot.Y);
             string readyMessage=SerializeMessage(message);
-            SendMessage(readyMessage,stream);
+            SendMessageLine(readyMessage,stream);
         }
 
         public void SendChatMessageToGameServer(string message, ChatType chatType)
         {
 
             RawChatMessageFromClient chatMessage = new RawChatMessageFromClient(Name,chatType, message);
-            string readyMessage = SerializeMessage(message);
-            SendMessage(readyMessage, stream);
+            string readyMessage = SerializeMessage(chatMessage);
+            SendMessageLine(readyMessage, stream);
 
             //CurrentFeedback = "Send Message: " + message;
         }
@@ -525,6 +584,8 @@ namespace BattleShip_ClientService.Interfaces
         public void HandleStartupMessage(StartupMessage message)
         {
             Name = message.ClientID;
+            if (IsTest == false)
+                Console.Title = Name;
             IsGameReady =message.GameReady;
             if (message.OtherPlayer != null)
                 OtherPlayerName = message.OtherPlayer;
