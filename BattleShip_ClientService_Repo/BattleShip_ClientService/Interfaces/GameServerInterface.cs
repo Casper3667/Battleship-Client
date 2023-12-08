@@ -102,7 +102,7 @@ namespace BattleShip_ClientService.Interfaces
 
         }
 
-        public void Run(string adress, string token)
+        public void Run(ServerAdress adress, string token)
         {
             if (ConnectToGameServer(adress, token))
             {
@@ -138,7 +138,7 @@ namespace BattleShip_ClientService.Interfaces
         }
 
 
-        public bool ConnectToGameServer(string address, string token)
+        public bool ConnectToGameServer(ServerAdress address, string token)
         {
             /// Create TCP Client
             client = new TcpClient();

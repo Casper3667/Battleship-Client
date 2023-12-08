@@ -32,7 +32,8 @@ namespace BattleShip_ClientService_UnitTests
         public void Test_GameServer_ConnectToGameServer_True() 
         {
             bool expect = true;
-            string adress = "FAKE ADRESS";
+          //  string adress = "FAKE ADRESS";
+            ServerAdress adress = new ServerAdress() { IP = "FakeIP", Port = 404 };
             string token = "JWT";
 
             bool result=GSI.ConnectToGameServer(adress, token);

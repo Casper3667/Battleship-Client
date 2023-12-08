@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace BattleShip_ClientService.Interfaces
@@ -32,7 +33,7 @@ namespace BattleShip_ClientService.Interfaces
         /// Joins Game Server Lobby 
         /// </summary>
         /// <returns>Adress for Game Server</returns>
-        public  string? JoinLobby(string Token)
+        public  ServerAdress? JoinLobby(string Token)
         {
             Console.Clear();
             Console.WriteLine("Joining Game Lobby");
@@ -145,9 +146,32 @@ namespace BattleShip_ClientService.Interfaces
         }
         
 
-        public string HandleServerAdress(string adressMessage)
+        public ServerAdress? HandleServerAdress(string adressMessage)
         {
-            return adressMessage;
+            if (adressMessage != "NoFreeServers")
+            {
+                try
+                {
+                    ServerAdress? result=JsonSerializer.Deserialize<ServerAdress>(adressMessage);
+                    return result;
+
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine("LobbyInterface Couldnt handle adressMessage but it wasnt usual fail message it was: " + adressMessage + "\nError Was: " + e);
+                    return null;
+
+                }
+            }
+            else
+                return null;
+
+           
         }
+    }
+    public class ServerAdress
+    {
+        public string IP { get; set; } = "";
+        public int Port { get; set; }
     }
 }

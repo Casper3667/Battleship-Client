@@ -18,10 +18,11 @@ if(loginTask.IsCompletedSuccessfully)
 
     Debug.WriteLine("After LoginScreen\nToken: " + token);
     
-    string? adress = lobbyServiceInterface.JoinLobby(token);
+    ServerAdress? adress = lobbyServiceInterface.JoinLobby(token);
     if(adress != null)
     {
-        Console.WriteLine("After Game Server Lobby\nGame Server Adress: " + adress);
+        Console.WriteLine("After Game Server Lobby\nGame Server Adress:\nIP: " + adress.IP+"\nPort: "+adress.Port);
+        Debug.WriteLine("After Game Server Lobby\nGame Server Adress:\nIP: " + adress.IP + "\nPort: " + adress.Port);
         gameServerInterface.Run(adress, token);
     }
     else
