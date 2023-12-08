@@ -29,8 +29,8 @@ namespace BattleShip_ClientService.Handlers
             }
             else 
             {
-                message = "404 Timer for Getting JWT Ran Out";
-                Debug.Fail("Didnt Get A Message Back About JWT in Given Time");
+                message = "404 Got A Null Message Back";
+                Debug.Fail("Got A Null Message Back");
             }
             Debug.WriteLine("Message Regarding JWT: " + message);
 
