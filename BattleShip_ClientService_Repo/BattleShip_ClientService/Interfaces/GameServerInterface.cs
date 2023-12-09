@@ -161,7 +161,17 @@ namespace BattleShip_ClientService.Interfaces
                 return false;
         }
 
-
+        /// <summary>
+        /// Code that SHOULD be Run on Exit of game
+        /// </summary>
+        public void DisconnectFromGameServer()
+        {
+            running = false;
+            //var s=client.GetStream();
+            //stream.Close();
+            //client.Close();
+            
+        }
 
         #region TCP Stuff
 
@@ -191,7 +201,7 @@ namespace BattleShip_ClientService.Interfaces
             string message =  JWTHandler.RecieveJWTFeedback(stream,TimeSpan.FromSeconds(10));
             Console.WriteLine($"Message Regarding JWT: [{message}]");
             Debug.WriteLine($"Message Regarding JWT: [{message}]");
-            Thread.Sleep(1000);
+            //Thread.Sleep(1000);
             bool connected = client.Connected;
 
 
@@ -796,9 +806,9 @@ namespace BattleShip_ClientService.Interfaces
         {
             //readLinecancellationTokenSource.Cancel();
 
-            
-                if (GoToPreviousScreen() == false)
-                    running = false;
+
+            if (GoToPreviousScreen() == false)
+                DisconnectFromGameServer();
             
             
             
