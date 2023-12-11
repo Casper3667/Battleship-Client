@@ -1,4 +1,7 @@
 {
+  "LoginServiceSettings": {
+    "IP": "192.168.87.176"
+  },
   "LayoutSettings": {
     "GameScreenLayout": {
       "0": 1,
@@ -29,7 +32,7 @@
         "Height": 1
       }
     }
-    
+
 
   }
 

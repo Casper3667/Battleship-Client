@@ -1,5 +1,8 @@
-﻿using System;
+﻿using BattleShip_ClientService.Interfaces;
+using BattleShip_ClientService.Settings.NetworkSettings;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
@@ -10,38 +13,118 @@ namespace BattleShip_ClientService.Settings
 {
     public static class Settings
     {
+        public static bool IsSettingsLoaded { get; private set; } = false;
         public static Dictionary<int, View> Views { get; private set; } = new Dictionary<int, View>();
         public static Dictionary<int, Screen> Screens { get; private set; }
+        public static NetworkSettings.NetworkSettings NetworkSettings { get; private set; }
 
         public static void LoadSettings()
         {
+            if(IsSettingsLoaded==false)
+            {
+                Testing.Print("Loading Settings");
 
-            //System.IO.Path.GetDirectoryName()
+                LoadViews();
+                LoadScreens();
+                GetNetworkSettings();
+                IsSettingsLoaded = true;
+            }
+            else
+            {
+                Testing.Print("Settings Already Loaded");
+            }
+        }
 
+        public static string GetNetworkSettings()
+        {
+           var settings =LoadJSON<NetworkSettings.NetworkSettings>("NetworkSettings\\NetworkSettings.JSON");
+            if (settings != null && settings.Any())
+            {
+                
+                NetworkSettings = settings[0];
+                //LoginServiceIPAdress = ip;
+                return settings[0].Name;
+            }
+            else
+            {
+                Testing.Print("Couldnt Find NetworkSettings So returned ERROR");
+                Debug.Fail("Couldnt Find NetworkSettings So returned ERROR");
+                return "ERROR";
+            }
+            //using (StreamReader r = new StreamReader(GetPathToSettingsFile("LoginServiceInterfaceSettings\\LoginServiceInterfaceSettings.JSON")))
+            //{
+            //    r.
+            //    string json = r.ReadToEnd();
+            //    items = JsonSerializer.Deserialize<List<T>>(json);
 
-            LoadViews();
-            LoadScreens();
+            //}
 
+        }
+        // For This to Work File Must be in the Settings Folder
+        public static string GetPathToSettingsFile(string FileName)
+        {
+            FileName = "Settings\\" + FileName;
 
+#if DEBUG
+            Testing.Print("Is In Debug Mode");
+            string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            Testing.Print("Path: " + System.IO.Path.GetDirectoryName(path));
+
+            string Identifier = "\\BattleShip_ClientService_Repo\\BattleShip_ClientService\\";
+            string TestIdentifier = "\\BattleShip_ClientService_Repo\\BattleShip_ClientService_UnitTests\\"; // Indicates that it is a test and splits where the Test Begins to get the part of the Path that should vary form computer to Computer
+            string forginPath = "";
+            if (path.Contains(Identifier))
+            {
+                forginPath = path.Split(Identifier)[0];
+            }
+            else if (path.Contains(TestIdentifier))
+            {
+                forginPath = path.Split(TestIdentifier)[0];
+            }
+
+            Testing.Print("forgin Path: " + forginPath);
+
+            string newPath = forginPath + Identifier;
+            Testing.Print("new Path: " + newPath);
+            FileName = newPath /*+ "Settings\\"*/ + FileName;
+            Testing.Print("views Path: " + FileName);
+
+#endif
+            return FileName;
         }
 
         private static List<T> LoadJSON<T>(string FileName)
         {
+            FileName = GetPathToSettingsFile(FileName);
+                
+//#if DEBUG
+//            Testing.Print("Is In Debug Mode");
+//            string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
+//            Testing.Print("Path: " + System.IO.Path.GetDirectoryName(path));
+           
+//            string Identifier = "\\BattleShip_ClientService_Repo\\BattleShip_ClientService\\";
+//            string TestIdentifier = "\\BattleShip_ClientService_Repo\\BattleShip_ClientService_UnitTests\\"; // Indicates that it is a test and splits where the Test Begins to get the part of the Path that should vary form computer to Computer
+//            string forginPath="";
+//            if (path.Contains(Identifier))
+//            {
+//                forginPath= path.Split(Identifier)[0];
+//            }
+//            else if(path.Contains(TestIdentifier))
+//            {
+//                forginPath = path.Split(TestIdentifier)[0];
+//            }
+            
+//            Testing.Print("forgin Path: " + forginPath);
 
+//            string newPath = forginPath + Identifier;
+//            Testing.Print("new Path: " + newPath);
+//            FileName = newPath + "Settings\\" + FileName;
+//            Testing.Print("views Path: " + FileName);
 
-#if DEBUG
-            string path = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            Console.WriteLine("Path: " + System.IO.Path.GetDirectoryName(path));
-            string Identifier = "\\BattleShip_ClientService_Repo\\BattleShip_ClientService\\";
-            var forginPath = path.Split(Identifier)[0];
-            Console.WriteLine("forgin Path: " + forginPath);
+//#endif
 
-            string newPath = forginPath + Identifier;
-            Console.WriteLine("new Path: " + newPath);
-            FileName= newPath + "Settings\\" + FileName;
-            Console.WriteLine("views Path: " + FileName);
+            //FileName = "Settings\\" + FileName;
 
-#endif
             List<T> items = new List<T>();
             using (StreamReader r = new StreamReader(FileName))
             {
